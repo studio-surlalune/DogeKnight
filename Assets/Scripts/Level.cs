@@ -9,18 +9,13 @@ public class Level : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        // Minimum buffering, whatever it may be.
+        // Minimum buffering (double-buffering).
+        // If possible, disable multithreaded rendering (the render thread)
+        // and enable graphics jobs. This is the bast combination to minimize input delay.
         QualitySettings.maxQueuedFrames = 1;
 
         GameObject startPoint = GameObject.Find("StartPoint");
-        if (startPoint != null)
+        if (mainCharacter && startPoint != null)
             mainCharacter.transform.position = startPoint.transform.position;
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-        
     }
 }

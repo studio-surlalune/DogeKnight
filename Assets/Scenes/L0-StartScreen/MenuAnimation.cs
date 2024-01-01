@@ -6,7 +6,7 @@ using TMPro;
 
 public class MenuAnimation : MonoBehaviour
 {
-    private enum MenuState
+    public enum MenuState
     {
         Empty,
         Title,
@@ -81,6 +81,9 @@ public class MenuAnimation : MonoBehaviour
         }
     }
 
+    // Only 1 instance by design.
+    public static MenuAnimation s_Instance;
+
     private MenuState state;
 
     private const float kPressStartAnimSpeed = 1.5f;
@@ -95,6 +98,8 @@ public class MenuAnimation : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        s_Instance = this;
+
         state = MenuState.Empty;
         pressStartAnimTime = 0f;
 
@@ -114,7 +119,6 @@ public class MenuAnimation : MonoBehaviour
         // Initial menu states.
         foreach (Transform t in menus)
             t.gameObject.SetActive(false);
-        DoTransitionState(MenuState.Title);
     }
 
     // Update is called once per frame
@@ -125,6 +129,13 @@ public class MenuAnimation : MonoBehaviour
             case MenuState.Title: UpdateTitle(); break;
             case MenuState.Game: UpdateGame(); break;
         }
+    }
+
+    public void DoMenuTransition(MenuState s)
+    {
+        menus[(int)state].gameObject.SetActive(false);
+        menus[(int)s].gameObject.SetActive(true);
+        state = s;
     }
 
     private Button FindButton(MenuState menu, string name)
@@ -142,16 +153,14 @@ public class MenuAnimation : MonoBehaviour
     private void UpdateTitle()
     {
         pressStartAnimTime += Time.deltaTime;
-        
+
         float alpha = Mathf.Repeat(pressStartAnimTime * kPressStartAnimSpeed, 2.0f);
         alpha = alpha > 1f ? 2f - alpha : alpha;
         alpha = Mathf.Pow(alpha, 0.5f);
         pressStartBtn.text.color = new Color(1f, 1f, 1f, alpha);
 
         if (Input.GetMouseButtonDown(0))
-        {
-            DoTransitionState(MenuState.Game);
-        }
+            DoMenuTransition(MenuState.Game);
     }
 
     private void UpdateGame()
@@ -175,9 +184,7 @@ public class MenuAnimation : MonoBehaviour
         }
 
         if (UIEventHandler.IsClicked(gameBtns[(int)MenuGame.Back].text))
-        {
-           DoTransitionState(MenuState.Title);
-        }
+           DoMenuTransition(MenuState.Title);
 
         // perform animations.        
         for(int i = 0; i < gameBtns.Length; ++i)
@@ -185,12 +192,5 @@ public class MenuAnimation : MonoBehaviour
             ref Button btn = ref gameBtns[i];
             btn.Update(deltaTime);
         }
-    }
-
-    private void DoTransitionState(MenuState s)
-    {
-        menus[(int)state].gameObject.SetActive(false);
-        menus[(int)s].gameObject.SetActive(true);
-        state = s;
     }
 }
