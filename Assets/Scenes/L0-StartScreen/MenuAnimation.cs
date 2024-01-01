@@ -6,7 +6,7 @@ using TMPro;
 
 public class MenuAnimation : MonoBehaviour
 {
-    enum State
+    private enum MenuState
     {
         Empty,
         Title,
@@ -14,103 +14,180 @@ public class MenuAnimation : MonoBehaviour
         Count,
     }
 
-    private State state;
+    private enum MenuGame
+    {
+        NewGame,
+        Options,
+        Credits,
+        Back,
+        Count,
+    }
 
-    private readonly float kAnimSpeed = 1.5f;
-    private float timeAnim = 0f;
+    enum AnimAction
+    {
+        None,
+        TransitionIn,
+        Loop,
+        TransitionOut,
+    }
 
-    private Transform[] menus = new Transform[(int)State.Count];
-    private TMP_Text pressStart;
+    struct Button
+    {
+        private const float kAnimSpeed = 5.0f;
+        private const float kFontFactor = 1.25f;
 
-    private TMP_Text newGame;
-    private TMP_Text options;
-    private TMP_Text credits;
-    private TMP_Text back;
+        public TMP_Text text;
+        public float fontSize;
+        public float animTime;
+        public AnimAction action;
+
+        public void Update(float deltaTime)
+        {
+            if (action == AnimAction.TransitionIn && animTime + deltaTime * kAnimSpeed > 1f)
+            {
+                action = AnimAction.Loop;
+                animTime = 1f;
+            }
+            else if (action == AnimAction.TransitionOut && animTime - deltaTime * kAnimSpeed < 0f)
+            {
+                action = AnimAction.None;
+                animTime = 0f;
+            }
+
+            switch (action)
+            {
+                case AnimAction.None:
+                {
+                    break;
+                }
+                case AnimAction.TransitionIn:
+                {
+                    animTime += deltaTime * kAnimSpeed;
+                    text.fontSize = Mathf.Lerp(fontSize, fontSize * kFontFactor, animTime);
+                    break;
+                }
+                case AnimAction.Loop:
+                {
+                    text.fontSize = fontSize * kFontFactor;
+                    break;
+                }
+                case AnimAction.TransitionOut:
+                {
+                    animTime -= deltaTime * kAnimSpeed;
+                    text.fontSize = Mathf.Lerp(fontSize, fontSize * kFontFactor, animTime);
+                    break;
+                }
+            }
+        }
+    }
+
+    private MenuState state;
+
+    private const float kPressStartAnimSpeed = 1.5f;
+    private float pressStartAnimTime = 0f;
+
+    private Transform[] menus = new Transform[(int)MenuState.Count];
+
+    private Button pressStartBtn;
+
+    private Button[] gameBtns = new Button[(int)MenuGame.Count];
 
     // Start is called before the first frame update
     void Start()
     {
-        state = State.Empty;
-        timeAnim = 0f;
+        state = MenuState.Empty;
+        pressStartAnimTime = 0f;
 
-        menus[(int)State.Empty] = transform.Find("MenuEmpty");
-        menus[(int)State.Title] = transform.Find("MenuTitle");
-        menus[(int)State.Game] = transform.Find("MenuGame");
+        // Find all the menus.
+        menus[(int)MenuState.Empty] = transform.Find("MenuEmpty");
+        menus[(int)MenuState.Title] = transform.Find("MenuTitle");
+        menus[(int)MenuState.Game] = transform.Find("MenuGame");
 
-        pressStart = menus[(int)State.Title].Find("Press Start")?.GetComponent<TMP_Text>();
+        // Find all the buttons.
+        pressStartBtn = FindButton(MenuState.Title, "Press Start");
 
-        newGame = menus[(int)State.Game].Find("New Game")?.GetComponent<TMP_Text>();
-        options = menus[(int)State.Game].Find("Options")?.GetComponent<TMP_Text>();
-        credits = menus[(int)State.Game].Find("Credits")?.GetComponent<TMP_Text>();
-        back = menus[(int)State.Game].Find("Back")?.GetComponent<TMP_Text>();
+        gameBtns[(int)MenuGame.NewGame] = FindButton(MenuState.Game, "New Game");
+        gameBtns[(int)MenuGame.Options] = FindButton(MenuState.Game, "Options");
+        gameBtns[(int)MenuGame.Credits] = FindButton(MenuState.Game, "Credits");
+        gameBtns[(int)MenuGame.Back] = FindButton(MenuState.Game, "Back");
 
+        // Initial menu states.
         foreach (Transform t in menus)
-            t?.gameObject.SetActive(false);
-
-        DoTransitionState(State.Title);
+            t.gameObject.SetActive(false);
+        DoTransitionState(MenuState.Title);
     }
 
     // Update is called once per frame
     void Update()
     {
-        ProcessEvents();
-
-        timeAnim += Time.deltaTime;
-
         switch(state)
         {
-            case State.Title: UpdateTitle(); break;
-            case State.Game: UpdateGame(); break;
+            case MenuState.Title: UpdateTitle(); break;
+            case MenuState.Game: UpdateGame(); break;
         }
     }
 
-    private void ProcessEvents()
+    private Button FindButton(MenuState menu, string name)
     {
-
+        TMP_Text t = menus[(int)menu].Find(name)?.GetComponent<TMP_Text>();
+        return new Button
+        {
+            text = t,
+            fontSize = t ? t.fontSize : 50f,
+            animTime = 0f,
+            action = AnimAction.None
+        };
     }
 
     private void UpdateTitle()
     {
-        float alpha = Mathf.Repeat(timeAnim * kAnimSpeed, 2.0f);
+        pressStartAnimTime += Time.deltaTime;
+        
+        float alpha = Mathf.Repeat(pressStartAnimTime * kPressStartAnimSpeed, 2.0f);
         alpha = alpha > 1f ? 2f - alpha : alpha;
         alpha = Mathf.Pow(alpha, 0.5f);
-        pressStart.color = new Color(1f, 1f, 1f, alpha);
+        pressStartBtn.text.color = new Color(1f, 1f, 1f, alpha);
 
         if (Input.GetMouseButtonDown(0))
         {
-            DoTransitionState(State.Game);
+            DoTransitionState(MenuState.Game);
         }
     }
 
     private void UpdateGame()
     {
-        if (UIEventHandler.IsHovered(newGame))
-            newGame.fontSize = 60;
-        else
-            newGame.fontSize = 50;
+        float deltaTime = Time.deltaTime;
 
-        if (UIEventHandler.IsHovered(options))
-            options.fontSize = 60;
-        else
-            options.fontSize = 50;
-
-        if (UIEventHandler.IsHovered(credits))
-            credits.fontSize = 60;
-        else
-            credits.fontSize = 50;
-
-        if (UIEventHandler.IsHovered(back))
-            back.fontSize = 60;
-        else
-            back.fontSize = 50;
-
-        if (UIEventHandler.IsClicked(back))
+        for(int i = 0; i < gameBtns.Length; ++i)
         {
-           DoTransitionState(State.Title);
+            ref Button btn = ref gameBtns[i];
+
+            if (UIEventHandler.IsHovered(btn.text))
+            {
+                if (btn.action == AnimAction.None || btn.action == AnimAction.TransitionOut)
+                    btn.action = AnimAction.TransitionIn;
+            }
+            else
+            {
+                if (btn.action == AnimAction.TransitionIn || btn.action == AnimAction.Loop)
+                    btn.action = AnimAction.TransitionOut;
+            }
+        }
+
+        if (UIEventHandler.IsClicked(gameBtns[(int)MenuGame.Back].text))
+        {
+           DoTransitionState(MenuState.Title);
+        }
+
+        // perform animations.        
+        for(int i = 0; i < gameBtns.Length; ++i)
+        {
+            ref Button btn = ref gameBtns[i];
+            btn.Update(deltaTime);
         }
     }
 
-    private void DoTransitionState(State s)
+    private void DoTransitionState(MenuState s)
     {
         menus[(int)state].gameObject.SetActive(false);
         menus[(int)s].gameObject.SetActive(true);
