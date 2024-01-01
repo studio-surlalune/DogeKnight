@@ -5,6 +5,8 @@ using UnityEngine.UI;
 
 public class DevHud : MonoBehaviour
 {
+    #if UNITY_EDITOR || DEVELOPMENT_BUILD
+
     private readonly Color kWhite = new Color(1.0f, 1.0f, 1.0f, 0.66f);
     private readonly Color kLightGrey = new Color(0.66f, 0.66f, 0.66f, 0.66f);
     private readonly Color kDarkGrey = new Color(0.33f, 0.33f, 0.33f, 0.66f);
@@ -119,4 +121,6 @@ public class DevHud : MonoBehaviour
         }
         return box;
     }
+
+    #endif // UNITY_EDITOR || DEVELOPMENT_BUILD
 }
