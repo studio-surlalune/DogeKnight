@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using TMPro;
 
 public class MenuAnimation : MonoBehaviour
@@ -138,6 +139,11 @@ public class MenuAnimation : MonoBehaviour
         state = s;
     }
 
+    public void DoLevelTransition(string sceneName)
+    {
+        StartCoroutine(SwitchLevelCoroutine(sceneName));
+    }
+
     private Button FindButton(MenuState menu, string name)
     {
         TMP_Text t = menus[(int)menu].Find(name)?.GetComponent<TMP_Text>();
@@ -183,7 +189,12 @@ public class MenuAnimation : MonoBehaviour
             }
         }
 
-        if (UIEventHandler.IsClicked(gameBtns[(int)MenuGame.Back].text))
+        if (UIEventHandler.IsClicked(gameBtns[(int)MenuGame.NewGame].text))
+        {
+           DoMenuTransition(MenuState.Empty);
+           DoLevelTransition("L1-Field");
+        }
+        else if (UIEventHandler.IsClicked(gameBtns[(int)MenuGame.Back].text))
            DoMenuTransition(MenuState.Title);
 
         // perform animations.        
@@ -192,5 +203,26 @@ public class MenuAnimation : MonoBehaviour
             ref Button btn = ref gameBtns[i];
             btn.Update(deltaTime);
         }
+    }
+
+    private IEnumerator SwitchLevelCoroutine(string sceneName)
+    {
+        Scene activeScene = SceneManager.GetActiveScene();
+        AsyncOperation asyncOp;
+
+        if (activeScene != null && activeScene.name != "UI")
+        {
+            asyncOp = SceneManager.UnloadSceneAsync(activeScene);
+            while (!asyncOp.isDone)
+                yield return null; // continue execution after Update phase
+        }
+
+        asyncOp = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+        while (!asyncOp.isDone)
+            yield return null; // continue execution after Update phase
+
+        Scene loadedScene = SceneManager.GetSceneByName(sceneName);
+        if (loadedScene != null)
+            SceneManager.SetActiveScene(loadedScene);
     }
 }

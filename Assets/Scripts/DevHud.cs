@@ -27,6 +27,13 @@ public class DevHud : MonoBehaviour
     {
         // Create Canvas
         GameObject canvasObject = new GameObject("DeveloperHud Canvas");
+
+        // Trick to put this gameObject under the scene where the script component is located.
+        // Thsi is necessary because we may load additive scenes, in which case Start() will be called
+        // before the scene is made active.
+        canvasObject.transform.parent = this.transform;
+        canvasObject.transform.parent = null;
+
         canvas = canvasObject.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvasObject.AddComponent<CanvasScaler>();

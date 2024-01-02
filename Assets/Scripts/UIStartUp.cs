@@ -24,9 +24,8 @@ public class UIStartUp : MonoBehaviour
         {
             // Only UI scene was loaded and nothing else, so load start screen too.
             StartCoroutine(LoadLevelCoroutine("L0-StartScreen"));
-            MenuAnimation.s_Instance.DoMenuTransition(MenuAnimation.MenuState.Title);
-
-
+            if (MenuAnimation.s_Instance) // it will be null if UI scene did not load
+                MenuAnimation.s_Instance.DoMenuTransition(MenuAnimation.MenuState.Title);
         }
     }
 
@@ -39,6 +38,7 @@ public class UIStartUp : MonoBehaviour
             yield return null; // continue execution after Update phase
 
         Scene loadedScene = SceneManager.GetSceneByName(sceneName);
-        SceneManager.SetActiveScene(loadedScene);
+        if (loadedScene != null)
+            SceneManager.SetActiveScene(loadedScene);
     }
 }
