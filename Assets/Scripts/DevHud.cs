@@ -10,10 +10,14 @@ public class DevHud : MonoBehaviour
     private readonly Color kWhite = new Color(1.0f, 1.0f, 1.0f, 0.66f);
     private readonly Color kLightGrey = new Color(0.66f, 0.66f, 0.66f, 0.66f);
     private readonly Color kDarkGrey = new Color(0.33f, 0.33f, 0.33f, 0.66f);
+    
+    private static DevHud s_Instance;
+
+    private Canvas canvas;
+
     private Text gpuTimeText;
     private Text cpuTimeText;
     private Text frameTimeText;
-    private Canvas canvas;
 
     private Image refResolutionBox;
     private Image scaledResolutionBox;
@@ -21,10 +25,14 @@ public class DevHud : MonoBehaviour
     private Text scaledResolutionText;
     private Text scaledPercentText;
 
+    private Text logText;
+
     private FrameTiming[] timings = new FrameTiming[1];
 
     void Start()
     {
+        s_Instance = this;
+
         // Create Canvas
         GameObject canvasObject = new GameObject("DeveloperHud Canvas");
 
@@ -55,6 +63,9 @@ public class DevHud : MonoBehaviour
         scaledResolutionText = CreateText(canvas, "scaledRes", 150 + displayWidth/16.0f + 10, -30);
         scaledPercentText = CreateText(canvas, "scaledPercent", 150 + 5, -10 - 5);
         scaledPercentText.color = kDarkGrey;
+
+        logText = CreateText(canvas, "log", 10, -70);
+        logText.rectTransform.sizeDelta = new Vector2(displayWidth/2, displayHeight/2);
     }
 
     void Update()
@@ -86,6 +97,14 @@ public class DevHud : MonoBehaviour
         scaledResolutionBox.rectTransform.sizeDelta = new Vector2(sw/16.0f, sh/16.0f);
         scaledResolutionText.text = $"dyn:{sw}x{sh}";
         scaledPercentText.text = $"{ 100 * (sw*sh) / (displayWidth*displayHeight) }%";
+    }
+
+    public static void Log(string msg)
+    {
+        if (!s_Instance)
+            return;
+        
+        s_Instance.logText.text = msg;
     }
 
     private Text CreateText(Canvas canvas, string name, float x, float y)

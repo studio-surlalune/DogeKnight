@@ -18,14 +18,14 @@ public class UIStartUp : MonoBehaviour
 
             // Special case for L0-StartScreen, set the UI to title screen (for debugging).
             if (SceneManager.GetSceneByName("L0-StartScreen").isLoaded)
-                MenuAnimation.s_Instance.DoMenuTransition(MenuAnimation.MenuState.Title);
+                Menus.s_Instance.DoMenuTransition(Menus.MenuState.Title);
         }
         else if (SceneManager.sceneCount == 1)
         {
             // Only UI scene was loaded and nothing else, so load start screen too.
             StartCoroutine(LoadLevelCoroutine("L0-StartScreen"));
-            if (MenuAnimation.s_Instance) // it will be null if UI scene did not load
-                MenuAnimation.s_Instance.DoMenuTransition(MenuAnimation.MenuState.Title);
+            if (Menus.s_Instance) // it will be null if UI scene did not load
+                Menus.s_Instance.DoMenuTransition(Menus.MenuState.Title);
         }
     }
 
