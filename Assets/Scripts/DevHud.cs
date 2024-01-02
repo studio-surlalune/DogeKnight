@@ -10,21 +10,25 @@ public class DevHud : MonoBehaviour
     private readonly Color kWhite = new Color(1.0f, 1.0f, 1.0f, 0.66f);
     private readonly Color kLightGrey = new Color(0.66f, 0.66f, 0.66f, 0.66f);
     private readonly Color kDarkGrey = new Color(0.33f, 0.33f, 0.33f, 0.66f);
-    
+    private readonly Color kLightGreyTransparent = new Color(0.66f, 0.66f, 0.66f, 0.3f);
+
     private static DevHud s_Instance;
 
     private Canvas canvas;
 
+    private Image timingBox;
     private Text gpuTimeText;
     private Text cpuTimeText;
     private Text frameTimeText;
 
+    private Image scalingBox;
     private Image refResolutionBox;
     private Image scaledResolutionBox;
     private Text refResolutionText;
     private Text scaledResolutionText;
     private Text scaledPercentText;
 
+    private Image logBox;
     private Text logText;
 
     private FrameTiming[] timings = new FrameTiming[1];
@@ -47,25 +51,35 @@ public class DevHud : MonoBehaviour
         canvasObject.AddComponent<CanvasScaler>();
         canvasObject.AddComponent<GraphicRaycaster>();
 
-        gpuTimeText = CreateText(canvas, "gpuTime", 10, -10);
-        cpuTimeText = CreateText(canvas, "cpuTime", 10, -30);
-        frameTimeText = CreateText(canvas, "frameTime", 10, -50);
-
-        refResolutionBox = CreateBox(canvas, "resolutionBox", 150, -10);
         int displayWidth = Screen.width;
         int displayHeight = Screen.height;
-        refResolutionBox.rectTransform.sizeDelta = new Vector2(displayWidth/16, displayHeight/16);
+        Vector2 anchorTimingBox = new Vector2(0, 0);
+        Vector2 anchorTimingDims = new Vector2(150, 5 + 5 + 15 + 15 + 15 + 5 + 5);
+        Vector2 anchorScalingBox = new Vector2(anchorTimingBox.x + anchorTimingDims.x, 0);
+        Vector2 anchorScalingDims = new Vector2(180, 5 + 5 + 15 + 15 + 15 + 5 + 5);
+        Vector2 anchorLogBox = new Vector2(anchorScalingBox.x + anchorScalingDims.x, 0);
+        Vector2 anchorLogDims = new Vector2(displayWidth - anchorLogBox.x, 5 + 5 + 15 + 15 + 15 + 5 + 5);
+
+        timingBox = CreateBox(canvas, "timingBox", anchorTimingBox.x + 5, anchorTimingBox.y - 5, anchorTimingDims.x - 5 - 5, anchorTimingDims.y - 5 - 5, false);
+        timingBox.color = kLightGreyTransparent;
+        gpuTimeText = CreateText(canvas, "gpuTime", anchorTimingBox.x + 10, anchorTimingBox.y - 10);
+        cpuTimeText = CreateText(canvas, "cpuTime", anchorTimingBox.x + 10, anchorTimingBox.y - 10 - 15);
+        frameTimeText = CreateText(canvas, "frameTime", anchorTimingBox.x + 10, anchorTimingBox.y - 10 - 15 - 15);
+
+        scalingBox = CreateBox(canvas, "scalingBox", anchorScalingBox.x + 5, anchorScalingBox.y - 5, Mathf.Max(anchorScalingDims.x, displayWidth/16) - 5 - 5, Mathf.Max(anchorScalingDims.y, displayHeight/16) - 5 - 5, false);
+        scalingBox.color = kLightGreyTransparent;
+        refResolutionBox = CreateBox(canvas, "resolutionBox", anchorScalingBox.x + 10, anchorScalingBox.y - 10, displayWidth/16, displayHeight/16);
         refResolutionBox.color = kLightGrey;
-        scaledResolutionBox = CreateBox(canvas, "scaledResolutionBox", 150, -10, false);
-        scaledResolutionBox.rectTransform.sizeDelta = new Vector2(displayWidth/16.0f, displayHeight/16.0f);
-        refResolutionText = CreateText(canvas, "refRes", 150 + displayWidth/16.0f + 10, -10);
-        refResolutionText.color = kLightGrey;
-        scaledResolutionText = CreateText(canvas, "scaledRes", 150 + displayWidth/16.0f + 10, -30);
-        scaledPercentText = CreateText(canvas, "scaledPercent", 150 + 5, -10 - 5);
+        scaledResolutionBox = CreateBox(canvas, "scaledResolutionBox", anchorScalingBox.x + 10, anchorScalingBox.y - 10, displayWidth/16.0f, displayHeight/16.0f, false);
+        refResolutionText = CreateText(canvas, "refRes", anchorScalingBox.x + 10 + displayWidth/16.0f + 5, anchorScalingBox.y - 10);
+        scaledResolutionText = CreateText(canvas, "scaledRes", anchorScalingBox.x + 10 + displayWidth / 16.0f + 5, anchorScalingBox.y - 10 - 15);
+        scaledPercentText = CreateText(canvas, "scaledPercent", anchorScalingBox.x + 10, anchorScalingBox.y - 10);
         scaledPercentText.color = kDarkGrey;
 
-        logText = CreateText(canvas, "log", 10, -70);
-        logText.rectTransform.sizeDelta = new Vector2(displayWidth/2, displayHeight/2);
+        logBox = CreateBox(canvas, "logBox", anchorLogBox.x + 5, anchorLogBox.y - 5, anchorLogDims.x - 5 - 5, anchorLogDims.y - 5 - 5, false);
+        logBox.color = kLightGreyTransparent;
+        logText = CreateText(canvas, "log", anchorLogBox.x + 10, anchorLogBox.y - 10);
+        logText.rectTransform.sizeDelta = new Vector2(anchorLogDims.x - 10 - 10, anchorLogDims.y - 10 - 10);
     }
 
     void Update()
@@ -118,7 +132,7 @@ public class DevHud : MonoBehaviour
         text.rectTransform.anchorMin = new Vector2(0, 1); // Top left anchor
         text.rectTransform.anchorMax = new Vector2(0, 1); // Top left anchor
         text.rectTransform.pivot = new Vector2(0, 1); // Top left pivot
-        text.rectTransform.anchoredPosition = new Vector2(x, y);
+        text.rectTransform.anchoredPosition3D = new Vector3(x, y, 1f); // z=1 so that it does not interfere with other UI components events
         text.rectTransform.sizeDelta = new Vector2(300, 100);
         // Add outline to Text
         Outline textOutline = textObject.AddComponent<Outline>();
@@ -127,7 +141,7 @@ public class DevHud : MonoBehaviour
         return text;
     }
 
-    private Image CreateBox(Canvas canvas, string name, float x, float y, bool outline = true)
+    private Image CreateBox(Canvas canvas, string name, float x, float y, float w, float h, bool outline = true)
     {
         GameObject barObject = new GameObject("name");
         barObject.transform.SetParent(canvas.transform);
@@ -136,8 +150,8 @@ public class DevHud : MonoBehaviour
         box.rectTransform.anchorMin = new Vector2(0, 1); // Top left anchor
         box.rectTransform.anchorMax = new Vector2(0, 1); // Top left anchor
         box.rectTransform.pivot = new Vector2(0, 1); // Top left pivot
-        box.rectTransform.anchoredPosition = new Vector2(x, y);
-        box.rectTransform.sizeDelta = new Vector2(100, 20);
+        box.rectTransform.anchoredPosition3D = new Vector3(x, y, 1f); // z=1 so that it does not interfere with other UI components events
+        box.rectTransform.sizeDelta = new Vector2(w, h);
         if (outline)
         {
             // Add outline
