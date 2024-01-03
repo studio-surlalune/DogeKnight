@@ -8,10 +8,17 @@ public class UIEventHandler : MonoBehaviour, IPointerEnterHandler, IPointerExitH
 {
     private static float clickedTime = -1f;
     private static TMP_Text clickedText;
-
     private static TMP_Text hoveredText;
+    private static bool mouseOrTouchEnabled;
 
     private TMP_Text tmpText;
+
+    public static bool IsMouseOrTouchActive()
+    {
+        if (Input.anyKeyDown)
+            mouseOrTouchEnabled = false;
+        return mouseOrTouchEnabled;
+    }
 
     public static bool IsClicked(TMP_Text t)
     {
@@ -31,16 +38,28 @@ public class UIEventHandler : MonoBehaviour, IPointerEnterHandler, IPointerExitH
     public void OnPointerEnter(PointerEventData eventData)
     {
         hoveredText = tmpText;
+        mouseOrTouchEnabled = true;
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
         hoveredText = null;
+        mouseOrTouchEnabled = true;
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
         clickedText = tmpText;
         clickedTime = Time.time;
+        mouseOrTouchEnabled = true;
+    }
+
+    void Update()
+    {
+        if (Input.GetAxis("Mouse X") != 0 || Input.GetAxis("Mouse Y") != 0)
+            mouseOrTouchEnabled = true;
+
+        if (Input.touches.Length > 0)
+            mouseOrTouchEnabled = true;
     }
 }

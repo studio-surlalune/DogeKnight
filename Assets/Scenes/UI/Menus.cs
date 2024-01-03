@@ -67,7 +67,7 @@ public class Menus : MonoBehaviour
         public float animTime;
         public AnimAction action;
 
-        public void Update(float deltaTime)
+        public void UpdateAnimation(float deltaTime)
         {
             if (action == AnimAction.TransitionIn && animTime + deltaTime * kAnimSpeed > 1f)
             {
@@ -112,6 +112,8 @@ public class Menus : MonoBehaviour
 
     private MenuState state;
     private float keyDelay;
+    private bool submitKeyUp;
+    private bool cancelKeyUp;
 
     private Transform[] menus = new Transform[(int)MenuState.Count];
 
@@ -119,10 +121,10 @@ public class Menus : MonoBehaviour
     private Button[] gameBtns = new Button[(int)MenuGame.Count];
     private Button[] pauseBtns = new Button[(int)MenuPause.Count];
 
-    MenuGame gameSelEntry;
+    int gameSelectedIndex;
     private MenuGame[][] gameKeyMaps;
 
-    MenuPause pauseSelEntry;
+    int pauseSelectedIndex;
     private MenuPause[][] pauseKeyMaps;
 
     void Awake()
@@ -207,15 +209,18 @@ public class Menus : MonoBehaviour
         };
     }
 
-    private KeyIndex ProcessKeyInputs()
+    private KeyIndex ProcessInputs()
     {
+        // Mainly processing gamepad, keyboard input and mouse click 0.
+
         const float kKeyDelay = 0.25f;
 
         keyDelay -= Time.deltaTime;
+        submitKeyUp = false;
+        cancelKeyUp = false;
 
         if (keyDelay <= 0.0f)
         {
-            // Perform some keyboard logic
             if (Input.GetAxis("Vertical") > 0.05f)
             {
                 keyDelay = kKeyDelay;
@@ -236,6 +241,16 @@ public class Menus : MonoBehaviour
                 keyDelay = kKeyDelay;
                 return KeyIndex.Right;
             }
+            else if (Input.GetButtonUp("Submit") || Input.GetMouseButtonUp(0))
+            {
+                keyDelay = kKeyDelay;
+                submitKeyUp = true;
+            }
+            else if (Input.GetButtonUp("Cancel") || Input.GetKeyUp(KeyCode.Escape))
+            {
+                keyDelay = kKeyDelay;
+                cancelKeyUp = true;
+            }
             else
             {
                 keyDelay = 0f;
@@ -245,8 +260,29 @@ public class Menus : MonoBehaviour
         return KeyIndex.None;
     }
 
+    private bool IsSubmitKey()
+    {
+        return submitKeyUp;
+    }
+
+    private bool IsCancelKey()
+    {
+        return cancelKeyUp;
+    }
+
+    private bool IsSubmitted(Button[] btns, int index, int selIndex)
+    {
+        if (UIEventHandler.IsMouseOrTouchActive() && UIEventHandler.IsClicked(btns[index].text)) // Mouse or touch
+            return true;
+        if (!UIEventHandler.IsMouseOrTouchActive() && index == selIndex && IsSubmitKey()) // gamepad or keyboard
+            return true;
+        return false;
+    }
+
     private void UpdateTitle()
     {
+        KeyIndex keyIndex = ProcessInputs();
+
         const float kPressStartAnimSpeed = 1.5f;
 
         ref Button pressStartBtn = ref titleBtns[(int)MenuTitle.PressStart];
@@ -258,76 +294,83 @@ public class Menus : MonoBehaviour
         alpha = Mathf.Pow(alpha, 0.5f);
         pressStartBtn.text.color = new Color(1f, 1f, 1f, alpha);
 
-        if (Input.GetMouseButtonDown(0) || Input.anyKeyDown)
+        if (IsSubmitKey())
         {
             DoMenuTransition(MenuState.Game);
-            gameSelEntry = MenuGame.NewGame;
+            gameSelectedIndex = (int)MenuGame.NewGame;
         }
     }
 
     private void UpdateGame()
     {
-        KeyIndex keyIndex = ProcessKeyInputs();
+        KeyIndex keyIndex = ProcessInputs();
 
         if (keyIndex != KeyIndex.None)
         {
-            MenuGame nextMenu = gameKeyMaps[(int)gameSelEntry][(int)keyIndex];
-            gameSelEntry = nextMenu != MenuGame.Count ? nextMenu : gameSelEntry;
+            MenuGame nextMenu = gameKeyMaps[gameSelectedIndex][(int)keyIndex];
+            gameSelectedIndex = nextMenu != MenuGame.Count ? (int)nextMenu : gameSelectedIndex;
         }
 
-        UpdateButtons(gameBtns, (int)gameSelEntry);
+        gameSelectedIndex = UpdateButtonAnimations(gameBtns, gameSelectedIndex);
 
-        if (UIEventHandler.IsClicked(gameBtns[(int)MenuGame.NewGame].text))
+        if (IsSubmitted(gameBtns, (int)MenuGame.NewGame, gameSelectedIndex))
         {
             DoMenuTransition(MenuState.InGame);
             DoLevelTransition("L1-Field");
         }
-        else if (UIEventHandler.IsClicked(gameBtns[(int)MenuGame.Back].text))
+        else if (IsSubmitted(gameBtns, (int)MenuGame.Back, gameSelectedIndex) || IsCancelKey())
             DoMenuTransition(MenuState.Title);
     }
 
     private void UpdateInGame()
     {
-        if (Input.GetMouseButtonDown(0) || Input.GetButtonUp("Fire2"))
+        KeyIndex keyIndex = ProcessInputs();
+
+        if (IsCancelKey())
         {
             DoMenuTransition(MenuState.Pause);
-            pauseSelEntry = MenuPause.Resume;
+            pauseSelectedIndex = (int)MenuPause.Resume;
         }
     }
 
     private void UpdatePause()
     {
-        KeyIndex keyIndex = ProcessKeyInputs();
+        KeyIndex keyIndex = ProcessInputs();
 
         if (keyIndex != KeyIndex.None)
         {
-            MenuPause nextMenu = pauseKeyMaps[(int)gameSelEntry][(int)keyIndex];
-            pauseSelEntry = nextMenu != MenuPause.Count ? nextMenu : pauseSelEntry;
+            MenuPause nextMenu = pauseKeyMaps[pauseSelectedIndex][(int)keyIndex];
+            pauseSelectedIndex = nextMenu != MenuPause.Count ? (int)nextMenu : pauseSelectedIndex;
         }
 
-        UpdateButtons(pauseBtns, (int)pauseSelEntry);
+        pauseSelectedIndex = UpdateButtonAnimations(pauseBtns, pauseSelectedIndex);
 
-        if (UIEventHandler.IsClicked(pauseBtns[(int)MenuPause.Resume].text))
+        if (IsSubmitted(pauseBtns, (int)MenuPause.Resume, pauseSelectedIndex) || IsCancelKey())
         {
             DoMenuTransition(MenuState.InGame);
         }
-        else if (UIEventHandler.IsClicked(pauseBtns[(int)MenuPause.Exit].text))
+        else if (IsSubmitted(pauseBtns, (int)MenuPause.Exit, pauseSelectedIndex))
         {
             DoMenuTransition(MenuState.Title);
             DoLevelTransition("L0-StartScreen");
         }
     }
 
-    private static void UpdateButtons(Button[] buttons, int selIndex)
+    private static int UpdateButtonAnimations(Button[] buttons, int selIndex)
     {
+        int hoveredIndex = -1;
+
         for (int i = 0; i < buttons.Length; ++i)
         {
             ref Button btn = ref buttons[i];
 
-            if (UIEventHandler.IsHovered(btn.text) || i == selIndex)
+            if ((UIEventHandler.IsMouseOrTouchActive() && UIEventHandler.IsHovered(btn.text)) // mouse or touch
+             || !UIEventHandler.IsMouseOrTouchActive() && i == selIndex) // gamepad or keyboard
             {
                 if (btn.action == AnimAction.None || btn.action == AnimAction.TransitionOut)
                     btn.action = AnimAction.TransitionIn;
+
+                hoveredIndex = i;
             }
             else
             {
@@ -341,8 +384,10 @@ public class Menus : MonoBehaviour
         for (int i = 0; i < buttons.Length; ++i)
         {
             ref Button btn = ref buttons[i];
-            btn.Update(deltaTime);
+            btn.UpdateAnimation(deltaTime);
         }
+
+        return hoveredIndex != -1 ? hoveredIndex : selIndex;
     }
 
     private static IEnumerator SwitchLevelCoroutine(string sceneName)
