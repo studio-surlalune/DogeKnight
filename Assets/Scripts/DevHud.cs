@@ -54,10 +54,10 @@ public class DevHud : MonoBehaviour
         int displayWidth = Screen.width;
         int displayHeight = Screen.height;
         Vector2 anchorTimingBox = new Vector2(0, 0);
-        Vector2 anchorTimingDims = new Vector2(150, 5 + 5 + 15 + 15 + 15 + 5 + 5);
+        Vector2 anchorTimingDims = new Vector2(170, 5 + 5 + 15 + 15 + 15 + 5 + 5);
         Vector2 anchorScalingBox = new Vector2(anchorTimingBox.x + anchorTimingDims.x, 0);
-        Vector2 anchorScalingDims = new Vector2(180, 5 + 5 + 15 + 15 + 15 + 5 + 5);
-        Vector2 anchorLogBox = new Vector2(anchorScalingBox.x + anchorScalingDims.x, 0);
+        Vector2 anchorScalingDims = new Vector2(180, anchorTimingDims.y);
+        Vector2 anchorLogBox = new Vector2(0, anchorTimingDims.y);
         Vector2 anchorLogDims = new Vector2(displayWidth - anchorLogBox.x, 5 + 5 + 15 + 15 + 15 + 5 + 5);
 
         timingBox = CreateBox(canvas, "timingBox", anchorTimingBox.x + 5, anchorTimingBox.y - 5, anchorTimingDims.x - 5 - 5, anchorTimingDims.y - 5 - 5, false);
