@@ -7,6 +7,13 @@ using TMPro;
 
 public class Menus : MonoBehaviour
 {
+    private enum FadeScreenAnim
+    {
+        None,
+        TransitionIn,
+        TransitionOut,
+    }
+
     public enum MenuState
     {
         Empty,
@@ -19,6 +26,7 @@ public class Menus : MonoBehaviour
 
     private enum MenuTitle
     {
+        Title,
         PressStart,
         Count,
     }
@@ -49,7 +57,7 @@ public class Menus : MonoBehaviour
         Count,
     }
 
-    enum AnimAction
+    enum ButtonAnim
     {
         None,
         TransitionIn,
@@ -65,39 +73,39 @@ public class Menus : MonoBehaviour
         public TMP_Text text;
         public float fontSize;
         public float animTime;
-        public AnimAction action;
+        public ButtonAnim action;
 
         public void UpdateAnimation(float deltaTime)
         {
-            if (action == AnimAction.TransitionIn && animTime + deltaTime * kAnimSpeed > 1f)
+            if (action == ButtonAnim.TransitionIn && animTime + deltaTime * kAnimSpeed > 1f)
             {
-                action = AnimAction.Loop;
+                action = ButtonAnim.Loop;
                 animTime = 1f;
             }
-            else if (action == AnimAction.TransitionOut && animTime - deltaTime * kAnimSpeed < 0f)
+            else if (action == ButtonAnim.TransitionOut && animTime - deltaTime * kAnimSpeed < 0f)
             {
-                action = AnimAction.None;
+                action = ButtonAnim.None;
                 animTime = 0f;
             }
 
             switch (action)
             {
-                case AnimAction.None:
+                case ButtonAnim.None:
                 {
                     break;
                 }
-                case AnimAction.TransitionIn:
+                case ButtonAnim.TransitionIn:
                 {
                     animTime += deltaTime * kAnimSpeed;
                     text.fontSize = Mathf.Lerp(fontSize, fontSize * kFontFactor, animTime);
                     break;
                 }
-                case AnimAction.Loop:
+                case ButtonAnim.Loop:
                 {
                     text.fontSize = fontSize * kFontFactor;
                     break;
                 }
-                case AnimAction.TransitionOut:
+                case ButtonAnim.TransitionOut:
                 {
                     animTime -= deltaTime * kAnimSpeed;
                     text.fontSize = Mathf.Lerp(fontSize, fontSize * kFontFactor, animTime);
@@ -114,6 +122,11 @@ public class Menus : MonoBehaviour
     private float keyDelay;
     private bool submitKeyUp;
     private bool cancelKeyUp;
+
+    /// Fade screen to black when transitioning between levels.
+    private Image fadeScreen;
+    private FadeScreenAnim fadeScreenAnim;
+    private float fadeScreenAnimTime;
 
     private Transform[] menus = new Transform[(int)MenuState.Count];
 
@@ -133,6 +146,13 @@ public class Menus : MonoBehaviour
 
         state = MenuState.Empty;
         keyDelay = 0f;
+
+        // Find the fade screen.
+        fadeScreen = transform.Find("FadeScreen")?.GetComponent<Image>();
+        fadeScreen.color = Color.clear;
+        fadeScreen.gameObject.SetActive(false);
+        fadeScreenAnim = FadeScreenAnim.None;
+        fadeScreenAnimTime = 0f;
         
         // Find all the menus.
         menus[(int)MenuState.Empty] = transform.Find("MenuEmpty");
@@ -142,6 +162,7 @@ public class Menus : MonoBehaviour
         menus[(int)MenuState.Pause] = transform.Find("MenuPause");
 
         // Find all the buttons.
+        titleBtns[(int)MenuTitle.Title] = FindButton(MenuState.Title, "Title");
         titleBtns[(int)MenuTitle.PressStart] = FindButton(MenuState.Title, "Press Start");
         //
         gameBtns[(int)MenuGame.NewGame] = FindButton(MenuState.Game, "New Game");
@@ -176,6 +197,9 @@ public class Menus : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        // Update fade screen (if any).
+        UpdateFadeScreen();
+
         switch(state)
         {
             case MenuState.Title: UpdateTitle(); break;
@@ -197,6 +221,30 @@ public class Menus : MonoBehaviour
         StartCoroutine(SwitchLevelCoroutine(sceneName));
     }
 
+    public void BeginScreenFadeOut()
+    {
+        fadeScreenAnim = FadeScreenAnim.TransitionOut;
+        fadeScreenAnimTime = 0f;
+    }
+
+    public void BeginScreenFadeIn()
+    {
+        fadeScreenAnim = FadeScreenAnim.TransitionIn;
+        fadeScreenAnimTime = 0f;
+    }
+
+    public bool IsScreenFading()
+    {
+        return fadeScreenAnim != FadeScreenAnim.None;
+    }
+
+    public void SetScreenFaded(bool faded)
+    {
+        fadeScreenAnim = FadeScreenAnim.None;
+        fadeScreenAnimTime = 0f;
+        fadeScreen.color = new Color(0f, 0f, 0f, faded ? 1f : 0f);
+    }
+
     private Button FindButton(MenuState menu, string name)
     {
         TMP_Text t = menus[(int)menu].Find(name)?.GetComponent<TMP_Text>();
@@ -205,7 +253,7 @@ public class Menus : MonoBehaviour
             text = t,
             fontSize = t ? t.fontSize : 50f,
             animTime = 0f,
-            action = AnimAction.None
+            action = ButtonAnim.None
         };
     }
 
@@ -277,6 +325,43 @@ public class Menus : MonoBehaviour
         if (!UIEventHandler.IsMouseOrTouchActive() && index == selIndex && IsSubmitKey()) // gamepad or keyboard
             return true;
         return false;
+    }
+
+    private void UpdateFadeScreen()
+    {
+        const float kFadeScreenAnimSpeed = 1.5f;
+
+        switch(fadeScreenAnim)
+        {
+            case FadeScreenAnim.None:
+                break;
+            case FadeScreenAnim.TransitionIn:
+            {
+                fadeScreenAnimTime += Time.deltaTime * kFadeScreenAnimSpeed;
+                float alpha = Mathf.Min(fadeScreenAnimTime, 1f);
+                alpha = Mathf.Pow(1f - alpha, 1.5f);
+                fadeScreen.color = new Color(0f, 0f, 0f, alpha);
+                break;
+            }
+            case FadeScreenAnim.TransitionOut:
+            {
+                fadeScreenAnimTime += Time.deltaTime * kFadeScreenAnimSpeed;
+                float alpha = Mathf.Min(fadeScreenAnimTime, 1f);
+                alpha = Mathf.Pow(alpha, 1.5f);
+                fadeScreen.color = new Color(0f, 0f, 0f, alpha);
+                break;
+            }
+        }
+
+        bool needActive = (fadeScreen.color.a != 0f);
+        if (fadeScreen.gameObject.activeSelf != needActive)
+            fadeScreen.gameObject.SetActive(needActive);
+
+        if (fadeScreenAnimTime >= 1f)
+        {
+            fadeScreenAnim = FadeScreenAnim.None;
+            fadeScreenAnimTime = 0f;
+        }
     }
 
     private void UpdateTitle()
@@ -367,15 +452,15 @@ public class Menus : MonoBehaviour
             if ((UIEventHandler.IsMouseOrTouchActive() && UIEventHandler.IsHovered(btn.text)) // mouse or touch
              || !UIEventHandler.IsMouseOrTouchActive() && i == selIndex) // gamepad or keyboard
             {
-                if (btn.action == AnimAction.None || btn.action == AnimAction.TransitionOut)
-                    btn.action = AnimAction.TransitionIn;
+                if (btn.action == ButtonAnim.None || btn.action == ButtonAnim.TransitionOut)
+                    btn.action = ButtonAnim.TransitionIn;
 
                 hoveredIndex = i;
             }
             else
             {
-                if (btn.action == AnimAction.TransitionIn || btn.action == AnimAction.Loop)
-                    btn.action = AnimAction.TransitionOut;
+                if (btn.action == ButtonAnim.TransitionIn || btn.action == ButtonAnim.Loop)
+                    btn.action = ButtonAnim.TransitionOut;
             }
         }
 
@@ -390,8 +475,14 @@ public class Menus : MonoBehaviour
         return hoveredIndex != -1 ? hoveredIndex : selIndex;
     }
 
-    private static IEnumerator SwitchLevelCoroutine(string sceneName)
+    private IEnumerator SwitchLevelCoroutine(string sceneName)
     {
+        // Fade-in to black screen.
+        BeginScreenFadeOut();
+
+        while (IsScreenFading())
+            yield return null; // continue execution after Update phase
+
         Scene activeScene = SceneManager.GetActiveScene();
         AsyncOperation asyncOp;
 
@@ -407,7 +498,12 @@ public class Menus : MonoBehaviour
             yield return null; // continue execution after Update phase
 
         Scene loadedScene = SceneManager.GetSceneByName(sceneName);
-        if (loadedScene != null)
+        if (loadedScene != null) // do assert
+        {
             SceneManager.SetActiveScene(loadedScene);
+
+            // Fade-out to black screen.
+            BeginScreenFadeIn();
+        }
     }
 }
