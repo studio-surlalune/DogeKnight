@@ -5,7 +5,7 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
 
-public class Menus : MonoBehaviour
+public class MenuSystem : MonoBehaviour
 {
     private enum FadeScreenAnim
     {
@@ -96,14 +96,14 @@ public class Menus : MonoBehaviour
     //_____________________________________________________________________________________________
     interface IMenu
     {
-        void Init(Menus system, Transform transform);
+        void Init(MenuSystem system, Transform transform);
 
         void SetActive(bool active);
 
-        void Enter(Menus system, MenuIndex previousIndex);
-        void Exit(Menus system, MenuIndex nextIndex);
+        void Enter(MenuSystem system, MenuIndex previousIndex);
+        void Exit(MenuSystem system, MenuIndex nextIndex);
 
-        void Update(Menus system, float deltaTime);
+        void Update(MenuSystem system, float deltaTime);
     }
 
     //_____________________________________________________________________________________________
@@ -112,7 +112,7 @@ public class Menus : MonoBehaviour
     {
         Transform transform;
 
-        public void Init(Menus system, Transform transform)
+        public void Init(MenuSystem system, Transform transform)
         {
             this.transform = transform;
         }
@@ -122,17 +122,17 @@ public class Menus : MonoBehaviour
             transform.gameObject.SetActive(false);
         }
 
-        public void Enter(Menus system, MenuIndex previousIndex)
+        public void Enter(MenuSystem system, MenuIndex previousIndex)
         {
             transform.gameObject.SetActive(true);
         }
 
-        public void Exit(Menus system, MenuIndex nextIndex)
+        public void Exit(MenuSystem system, MenuIndex nextIndex)
         {
             transform.gameObject.SetActive(false);
         }
 
-        public void Update(Menus system, float deltaTime)
+        public void Update(MenuSystem system, float deltaTime)
         {}
     }
 
@@ -152,7 +152,7 @@ public class Menus : MonoBehaviour
         int transitionStep;
         float animTime;
 
-        public void Init(Menus system, Transform transform)
+        public void Init(MenuSystem system, Transform transform)
         {
             this.transform = transform;
             transitionStep = 0;
@@ -167,14 +167,14 @@ public class Menus : MonoBehaviour
             transform.gameObject.SetActive(false);
         }
 
-        public void Enter(Menus system, MenuIndex previousIndex)
+        public void Enter(MenuSystem system, MenuIndex previousIndex)
         {
             transform.gameObject.SetActive(true);
             transitionStep = 0;
             animTime = 0f;
         }
 
-        public void Exit(Menus system, MenuIndex nextIndex)
+        public void Exit(MenuSystem system, MenuIndex nextIndex)
         {
             transform.gameObject.SetActive(false);
             ref Button titleBtn = ref buttons[(int)Buttons.Title];
@@ -183,7 +183,7 @@ public class Menus : MonoBehaviour
             pressStartBtn.text.color = new Color(1f, 1f, 1f, 0f);
         }
 
-        public void Update(Menus system, float deltaTime)
+        public void Update(MenuSystem system, float deltaTime)
         {
             KeyIndex keyIndex = system.ProcessInputs();
 
@@ -255,7 +255,7 @@ public class Menus : MonoBehaviour
         int selectedIndex;
         private Buttons[][] keyMap;
 
-        public void Init(Menus system, Transform transform)
+        public void Init(MenuSystem system, Transform transform)
         {
             this.transform = transform;
 
@@ -279,18 +279,18 @@ public class Menus : MonoBehaviour
             transform.gameObject.SetActive(false);
         }
 
-        public void Enter(Menus system, MenuIndex previousIndex)
+        public void Enter(MenuSystem system, MenuIndex previousIndex)
         {
             transform.gameObject.SetActive(true);
             selectedIndex = (int)Buttons.NewGame;
         }
 
-        public void Exit(Menus system, MenuIndex nextIndex)
+        public void Exit(MenuSystem system, MenuIndex nextIndex)
         {
             transform.gameObject.SetActive(false);
         }
 
-        public void Update(Menus system, float deltaTime)
+        public void Update(MenuSystem system, float deltaTime)
         {
             KeyIndex keyIndex = system.ProcessInputs();
 
@@ -318,7 +318,7 @@ public class Menus : MonoBehaviour
     {
         Transform transform;
 
-        public void Init(Menus system, Transform transform)
+        public void Init(MenuSystem system, Transform transform)
         {
             this.transform = transform;
         }
@@ -328,17 +328,17 @@ public class Menus : MonoBehaviour
             transform.gameObject.SetActive(false);
         }
 
-        public void Enter(Menus system, MenuIndex previousIndex)
+        public void Enter(MenuSystem system, MenuIndex previousIndex)
         {
             transform.gameObject.SetActive(true);
         }
 
-        public void Exit(Menus system, MenuIndex nextIndex)
+        public void Exit(MenuSystem system, MenuIndex nextIndex)
         {
             transform.gameObject.SetActive(false);
         }
 
-        public void Update(Menus system, float deltaTime)
+        public void Update(MenuSystem system, float deltaTime)
         {
             KeyIndex keyIndex = system.ProcessInputs();
 
@@ -364,7 +364,7 @@ public class Menus : MonoBehaviour
         private Buttons[][] keyMap;
 
 
-        public void Init(Menus system, Transform transform)
+        public void Init(MenuSystem system, Transform transform)
         {
             this.transform = transform;
 
@@ -383,18 +383,18 @@ public class Menus : MonoBehaviour
             transform.gameObject.SetActive(false);
         }
 
-        public void Enter(Menus system, MenuIndex previousIndex)
+        public void Enter(MenuSystem system, MenuIndex previousIndex)
         {
             transform.gameObject.SetActive(true);
             selectedIndex = (int)Buttons.Resume;
         }
 
-        public void Exit(Menus system, MenuIndex nextIndex)
+        public void Exit(MenuSystem system, MenuIndex nextIndex)
         {
             transform.gameObject.SetActive(false);
         }
 
-        public void Update(Menus system, float deltaTime)
+        public void Update(MenuSystem system, float deltaTime)
         {
             KeyIndex keyIndex = system.ProcessInputs();
 
@@ -421,7 +421,7 @@ public class Menus : MonoBehaviour
     //_____________________________________________________________________________________________
 
     // Only 1 instance by design.
-    public static Menus s_Instance;
+    public static MenuSystem s_Instance;
 
     private MenuIndex menuIndex;
     private float keyDelay;
