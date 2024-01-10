@@ -17,7 +17,7 @@ public class UIStartUp : MonoBehaviour
 
             // Only UI scene was loaded and nothing else, so load start screen too.
             StartCoroutine(LoadLevelCoroutine("L0-StartScreen", false));
-            Menus.s_Instance.DoMenuTransition(Menus.MenuState.Title);
+            Menus.s_Instance.DoMenuTransition(Menus.MenuIndex.Title);
         }
         else
         {
@@ -47,7 +47,7 @@ public class UIStartUp : MonoBehaviour
         {
             yield return null; // continue execution after Update phase
             // Give a chance to the UI to initialize.
-            Menus.s_Instance.DoMenuTransition(Menus.MenuState.InGame);
+            Menus.s_Instance.DoMenuTransition(Menus.MenuIndex.InGame);
         }
     }
 }

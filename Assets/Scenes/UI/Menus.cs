@@ -14,36 +14,13 @@ public class Menus : MonoBehaviour
         TransitionOut,
     }
 
-    public enum MenuState
+    public enum MenuIndex
     {
         Empty,
         Title,
         Game,
         InGame,
         Pause,
-        Count,
-    }
-
-    private enum MenuTitle
-    {
-        Title,
-        PressStart,
-        Count,
-    }
-
-    private enum MenuGame
-    {
-        NewGame,
-        Options,
-        Credits,
-        Back,
-        Count,
-    }
-
-   private enum MenuPause
-    {
-        Resume,
-        Exit,
         Count,
     }
 
@@ -65,7 +42,8 @@ public class Menus : MonoBehaviour
         TransitionOut,
     }
 
-    struct Button
+     //_____________________________________________________________________________________________
+   struct Button
     {
         private const float kAnimSpeed = 5.0f;
         private const float kFontFactor = 1.25f;
@@ -115,10 +93,337 @@ public class Menus : MonoBehaviour
         }
     }
 
+    //_____________________________________________________________________________________________
+    interface IMenu
+    {
+        void Init(Menus system, Transform transform);
+
+        void SetActive(bool active);
+
+        void Enter(Menus system, MenuIndex previousIndex);
+        void Exit(Menus system, MenuIndex nextIndex);
+
+        void Update(Menus system, float deltaTime);
+    }
+
+    //_____________________________________________________________________________________________
+
+    class EmptyMenu: IMenu
+    {
+        Transform transform;
+
+        public void Init(Menus system, Transform transform)
+        {
+            this.transform = transform;
+        }
+
+        public void SetActive(bool active)
+        {
+            transform.gameObject.SetActive(false);
+        }
+
+        public void Enter(Menus system, MenuIndex previousIndex)
+        {
+            transform.gameObject.SetActive(true);
+        }
+
+        public void Exit(Menus system, MenuIndex nextIndex)
+        {
+            transform.gameObject.SetActive(false);
+        }
+
+        public void Update(Menus system, float deltaTime)
+        {}
+    }
+
+    //_____________________________________________________________________________________________
+
+    class TitleMenu: IMenu
+    {
+        private enum Buttons
+        {
+            Title,
+            PressStart,
+            Count,
+        }
+
+        private Button[] buttons = new Button[(int)Buttons.Count];
+        Transform transform;
+        int transitionStep;
+        float animTime;
+
+        public void Init(Menus system, Transform transform)
+        {
+            this.transform = transform;
+            transitionStep = 0;
+            animTime = 0f;
+
+            buttons[(int)Buttons.Title] = FindButton(transform, "Title");
+            buttons[(int)Buttons.PressStart] = FindButton(transform, "Press Start");
+        }
+
+        public void SetActive(bool active)
+        {
+            transform.gameObject.SetActive(false);
+        }
+
+        public void Enter(Menus system, MenuIndex previousIndex)
+        {
+            transform.gameObject.SetActive(true);
+            transitionStep = 0;
+            animTime = 0f;
+        }
+
+        public void Exit(Menus system, MenuIndex nextIndex)
+        {
+            transform.gameObject.SetActive(false);
+            ref Button titleBtn = ref buttons[(int)Buttons.Title];
+            ref Button pressStartBtn = ref buttons[(int)Buttons.PressStart];
+            titleBtn.text.color = new Color(1f, 1f, 1f, 0f);
+            pressStartBtn.text.color = new Color(1f, 1f, 1f, 0f);
+        }
+
+        public void Update(Menus system, float deltaTime)
+        {
+            KeyIndex keyIndex = system.ProcessInputs();
+
+            const float kPressStartAnimSpeed = 1.5f;
+
+            ref Button titleBtn = ref buttons[(int)Buttons.Title];
+            ref Button pressStartBtn = ref buttons[(int)Buttons.PressStart];
+
+            if (transitionStep == 0)
+            {
+                animTime += deltaTime;
+
+                titleBtn.text.color = new Color(1f, 1f, 1f, 0f);
+                pressStartBtn.text.color = new Color(1f, 1f, 1f, 0f);
+
+                if (animTime >= 1.2f)
+                {
+                    transitionStep = 1;
+                    animTime = 0f;
+                }
+            }
+            else if (transitionStep == 1)
+            {
+                animTime += deltaTime;
+                float targetTime = 1.5f;
+
+                float alpha = Mathf.Min(animTime / targetTime, 1f);
+                titleBtn.text.color = new Color(1f, 1f, 1f, alpha);
+                pressStartBtn.text.color = new Color(1f, 1f, 1f, alpha);
+
+                if (animTime >= targetTime)
+                {
+                    transitionStep = 2;
+                    pressStartBtn.animTime = 1f; // make a smooth transition to the next animation
+                }
+            }
+            else
+            {
+                // Custom animation for "Press Start" button.
+                pressStartBtn.animTime += deltaTime;
+                float alpha = Mathf.Repeat(pressStartBtn.animTime * kPressStartAnimSpeed, 2.0f);
+                alpha = alpha > 1f ? 2f - alpha : alpha;
+                alpha = Mathf.Pow(alpha, 0.5f);
+                pressStartBtn.text.color = new Color(1f, 1f, 1f, alpha);
+            }
+
+            if (system.IsSubmitKey())
+            {
+                system.DoMenuTransition(MenuIndex.Game);
+            }
+        }
+    }
+
+    //_____________________________________________________________________________________________
+
+    class GameMenu: IMenu
+    {
+        private enum Buttons
+        {
+            NewGame,
+            Options,
+            Credits,
+            Back,
+            Count,
+        }
+
+        private Button[] buttons = new Button[(int)Buttons.Count];
+        Transform transform;
+        int selectedIndex;
+        private Buttons[][] keyMap;
+
+        public void Init(Menus system, Transform transform)
+        {
+            this.transform = transform;
+
+            buttons[(int)Buttons.NewGame] = FindButton(transform, "New Game");
+            buttons[(int)Buttons.Options] = FindButton(transform, "Options");
+            buttons[(int)Buttons.Credits] = FindButton(transform, "Credits");
+            buttons[(int)Buttons.Back] = FindButton(transform, "Back");
+
+            // KeyIndex [ Up, Down, Left, Right ]
+            keyMap = new Buttons[(int)Buttons.Count][]
+            {
+                new Buttons[] { Buttons.Back, Buttons.Options, Buttons.Count, Buttons.Count }, // New Game
+                new Buttons[] { Buttons.NewGame, Buttons.Credits, Buttons.Count, Buttons.Count }, // Options
+                new Buttons[] { Buttons.Options, Buttons.Back, Buttons.Count, Buttons.Count }, // Credits
+                new Buttons[] { Buttons.Credits, Buttons.NewGame, Buttons.Count, Buttons.Count} // Back
+            };
+        }
+
+        public void SetActive(bool active)
+        {
+            transform.gameObject.SetActive(false);
+        }
+
+        public void Enter(Menus system, MenuIndex previousIndex)
+        {
+            transform.gameObject.SetActive(true);
+            selectedIndex = (int)Buttons.NewGame;
+        }
+
+        public void Exit(Menus system, MenuIndex nextIndex)
+        {
+            transform.gameObject.SetActive(false);
+        }
+
+        public void Update(Menus system, float deltaTime)
+        {
+            KeyIndex keyIndex = system.ProcessInputs();
+
+            if (keyIndex != KeyIndex.None)
+            {
+                Buttons nextMenu = keyMap[selectedIndex][(int)keyIndex];
+                selectedIndex = nextMenu != Buttons.Count ? (int)nextMenu : selectedIndex;
+            }
+
+            selectedIndex = UpdateButtonAnimations(buttons, selectedIndex);
+
+            if (system.IsSubmitted(buttons, (int)Buttons.NewGame, selectedIndex))
+            {
+                system.DoMenuTransition(MenuIndex.InGame);
+                system.DoLevelTransition("L1-Field");
+            }
+            else if (system.IsSubmitted(buttons, (int)Buttons.Back, selectedIndex) || system.IsCancelKey())
+                system.DoMenuTransition(MenuIndex.Title);
+        }
+    }
+
+    //_____________________________________________________________________________________________
+
+    class InGameMenu: IMenu
+    {
+        Transform transform;
+
+        public void Init(Menus system, Transform transform)
+        {
+            this.transform = transform;
+        }
+
+        public void SetActive(bool active)
+        {
+            transform.gameObject.SetActive(false);
+        }
+
+        public void Enter(Menus system, MenuIndex previousIndex)
+        {
+            transform.gameObject.SetActive(true);
+        }
+
+        public void Exit(Menus system, MenuIndex nextIndex)
+        {
+            transform.gameObject.SetActive(false);
+        }
+
+        public void Update(Menus system, float deltaTime)
+        {
+            KeyIndex keyIndex = system.ProcessInputs();
+
+            if (system.IsCancelKey())
+                system.DoMenuTransition(MenuIndex.Pause);
+        }
+    }
+
+    //_____________________________________________________________________________________________
+
+    class PauseMenu: IMenu
+    {
+        private enum Buttons
+        {
+            Resume,
+            Exit,
+            Count,
+        }
+
+        private Button[] buttons = new Button[(int)Buttons.Count];
+        Transform transform;
+        int selectedIndex;
+        private Buttons[][] keyMap;
+
+
+        public void Init(Menus system, Transform transform)
+        {
+            this.transform = transform;
+
+            buttons[(int)Buttons.Resume] = FindButton(transform, "Resume");
+            buttons[(int)Buttons.Exit] = FindButton(transform, "Exit");
+
+            keyMap = new Buttons[(int)Buttons.Count][]
+            {
+                new Buttons[] { Buttons.Exit, Buttons.Exit, Buttons.Count, Buttons.Count }, // Resume
+                new Buttons[] { Buttons.Resume, Buttons.Resume, Buttons.Count, Buttons.Count }, // Exit
+            };
+        }
+
+        public void SetActive(bool active)
+        {
+            transform.gameObject.SetActive(false);
+        }
+
+        public void Enter(Menus system, MenuIndex previousIndex)
+        {
+            transform.gameObject.SetActive(true);
+            selectedIndex = (int)Buttons.Resume;
+        }
+
+        public void Exit(Menus system, MenuIndex nextIndex)
+        {
+            transform.gameObject.SetActive(false);
+        }
+
+        public void Update(Menus system, float deltaTime)
+        {
+            KeyIndex keyIndex = system.ProcessInputs();
+
+            if (keyIndex != KeyIndex.None)
+            {
+                Buttons nextMenu = keyMap[selectedIndex][(int)keyIndex];
+                selectedIndex = nextMenu != Buttons.Count ? (int)nextMenu : selectedIndex;
+            }
+
+            selectedIndex = UpdateButtonAnimations(buttons, selectedIndex);
+
+            if (system.IsSubmitted(buttons, (int)Buttons.Resume, selectedIndex) || system.IsCancelKey())
+            {
+                system.DoMenuTransition(MenuIndex.InGame);
+            }
+            else if (system.IsSubmitted(buttons, (int)Buttons.Exit, selectedIndex))
+            {
+                system.DoMenuTransition(MenuIndex.Title);
+                system.DoLevelTransition("L0-StartScreen");
+            }
+        }
+    }
+
+    //_____________________________________________________________________________________________
+
     // Only 1 instance by design.
     public static Menus s_Instance;
 
-    private MenuState state;
+    private MenuIndex menuIndex;
     private float keyDelay;
     private bool submitKeyUp;
     private bool cancelKeyUp;
@@ -128,27 +433,13 @@ public class Menus : MonoBehaviour
     private FadeScreenAnim fadeScreenAnim;
     private float fadeScreenAnimTime;
 
-    private Transform[] menus = new Transform[(int)MenuState.Count];
-
-    private Button[] titleBtns = new Button[(int)MenuTitle.Count];
-    private Button[] gameBtns = new Button[(int)MenuGame.Count];
-    private Button[] pauseBtns = new Button[(int)MenuPause.Count];
-
-    bool titleFirstTransition;
-    bool titleTransition;
-    float titleAnimTime;
-
-    int gameSelectedIndex;
-    private MenuGame[][] gameKeyMaps;
-
-    int pauseSelectedIndex;
-    private MenuPause[][] pauseKeyMaps;
+    private IMenu[] menus = new IMenu[(int)MenuIndex.Count];
 
     void Awake()
     {
         s_Instance = this;
 
-        state = MenuState.Empty;
+        menuIndex = MenuIndex.Empty;
         keyDelay = 0f;
 
         // Find the fade screen.
@@ -159,46 +450,15 @@ public class Menus : MonoBehaviour
         fadeScreenAnimTime = 0f;
         
         // Find all the menus.
-        menus[(int)MenuState.Empty] = transform.Find("MenuEmpty");
-        menus[(int)MenuState.Title] = transform.Find("MenuTitle");
-        menus[(int)MenuState.Game] = transform.Find("MenuGame");
-        menus[(int)MenuState.InGame] = transform.Find("MenuInGame");
-        menus[(int)MenuState.Pause] = transform.Find("MenuPause");
-
-        // Find all the buttons.
-        titleBtns[(int)MenuTitle.Title] = FindButton(MenuState.Title, "Title");
-        titleBtns[(int)MenuTitle.PressStart] = FindButton(MenuState.Title, "Press Start");
-        //
-        gameBtns[(int)MenuGame.NewGame] = FindButton(MenuState.Game, "New Game");
-        gameBtns[(int)MenuGame.Options] = FindButton(MenuState.Game, "Options");
-        gameBtns[(int)MenuGame.Credits] = FindButton(MenuState.Game, "Credits");
-        gameBtns[(int)MenuGame.Back] = FindButton(MenuState.Game, "Back");
-        //
-        pauseBtns[(int)MenuPause.Resume] = FindButton(MenuState.Pause, "Resume");
-        pauseBtns[(int)MenuPause.Exit] = FindButton(MenuState.Pause, "Exit");
+        menus[(int)MenuIndex.Empty] = FindMenu(MenuIndex.Empty, "MenuEmpty");
+        menus[(int)MenuIndex.Title] = FindMenu(MenuIndex.Title, "MenuTitle");
+        menus[(int)MenuIndex.Game] = FindMenu(MenuIndex.Game, "MenuGame");
+        menus[(int)MenuIndex.InGame] = FindMenu(MenuIndex.InGame, "MenuInGame");
+        menus[(int)MenuIndex.Pause] = FindMenu(MenuIndex.Pause, "MenuPause");
 
         // Initial menu states.
-        foreach (Transform t in menus)
-            t.gameObject.SetActive(false);
-
-        // KeyIndex [ Up, Down, Left, Right ]
-        gameKeyMaps = new MenuGame[(int)MenuGame.Count][]
-        {
-            new MenuGame[] { MenuGame.Back, MenuGame.Options, MenuGame.Count, MenuGame.Count }, // New Game
-            new MenuGame[] { MenuGame.NewGame, MenuGame.Credits, MenuGame.Count, MenuGame.Count }, // Options
-            new MenuGame[] { MenuGame.Options, MenuGame.Back, MenuGame.Count, MenuGame.Count }, // Credits
-            new MenuGame[] { MenuGame.Credits, MenuGame.NewGame, MenuGame.Count, MenuGame.Count} // Back
-       };
-
-        pauseKeyMaps = new MenuPause[(int)MenuPause.Count][]
-        {
-            new MenuPause[] { MenuPause.Exit, MenuPause.Exit, MenuPause.Count, MenuPause.Count }, // Resume
-            new MenuPause[] { MenuPause.Resume, MenuPause.Resume, MenuPause.Count, MenuPause.Count }, // Exit
-       };
-
-        titleFirstTransition = true;
-        titleTransition = false;
-        titleAnimTime = 0f;
+        foreach (IMenu m in menus)
+            m.SetActive(false);
     }
 
     // Update is called once per frame
@@ -207,27 +467,14 @@ public class Menus : MonoBehaviour
         // Update fade screen (if any).
         UpdateFadeScreen();
 
-        switch(state)
-        {
-            case MenuState.Title: UpdateTitle(); break;
-            case MenuState.Game: UpdateGame(); break;
-            case MenuState.InGame: UpdateInGame(); break;
-            case MenuState.Pause: UpdatePause(); break;
-        }
+        menus[(int)menuIndex].Update(this, Time.deltaTime);
     }
 
-    public void DoMenuTransition(MenuState s)
+    public void DoMenuTransition(MenuIndex nextIndex)
     {
-        menus[(int)state].gameObject.SetActive(false);
-        menus[(int)s].gameObject.SetActive(true);
-        state = s;
-
-        if (s == MenuState.Title)
-        {
-            titleFirstTransition = true;
-            titleTransition = true;
-            titleAnimTime = 0f;
-        }
+        menus[(int)menuIndex].Exit(this, nextIndex);
+        menus[(int)nextIndex].Enter(this, menuIndex);
+        menuIndex = nextIndex;
     }
 
     public void DoLevelTransition(string sceneName)
@@ -259,9 +506,30 @@ public class Menus : MonoBehaviour
         fadeScreen.color = new Color(0f, 0f, 0f, faded ? 1f : 0f);
     }
 
-    private Button FindButton(MenuState menu, string name)
+    private IMenu FindMenu(MenuIndex index, string name)
     {
-        TMP_Text t = menus[(int)menu].Find(name)?.GetComponent<TMP_Text>();
+        Transform t = transform.Find(name);
+        if (t == null)
+            return null;
+        
+        IMenu menu;
+        switch(index)
+        {
+            case MenuIndex.Empty: menu = new EmptyMenu(); break;
+            case MenuIndex.Title: menu = new TitleMenu(); break;
+            case MenuIndex.Game: menu = new GameMenu(); break;
+            case MenuIndex.InGame: menu = new InGameMenu(); break;
+            case MenuIndex.Pause: menu = new PauseMenu(); break;
+            default: return null;
+        }
+
+        menu.Init(this, t);
+        return menu;
+    }
+
+    private static Button FindButton(Transform transform, string name)
+    {
+        TMP_Text t = transform.Find(name)?.GetComponent<TMP_Text>();
         return new Button
         {
             text = t,
@@ -375,116 +643,6 @@ public class Menus : MonoBehaviour
         {
             fadeScreenAnim = FadeScreenAnim.None;
             fadeScreenAnimTime = 0f;
-        }
-    }
-
-    private void UpdateTitle()
-    {
-        KeyIndex keyIndex = ProcessInputs();
-
-        const float kPressStartAnimSpeed = 1.5f;
-
-        ref Button titleBtn = ref titleBtns[(int)MenuTitle.Title];
-        ref Button pressStartBtn = ref titleBtns[(int)MenuTitle.PressStart];
-        float deltaTime = Time.deltaTime;
-
-        if (titleTransition && titleFirstTransition)
-        {
-            titleAnimTime += deltaTime;
-
-            titleBtn.text.color = new Color(1f, 1f, 1f, 0f);
-            pressStartBtn.text.color = new Color(1f, 1f, 1f, 0f);
-
-            if (titleAnimTime >= 1.2f)
-            {
-                titleFirstTransition = false;
-                titleAnimTime = 0f;
-            }
-        }
-        else if (titleTransition)
-        {
-            titleAnimTime += deltaTime;
-            float targetTime = 1.5f;
-
-            float alpha = Mathf.Min(titleAnimTime / targetTime, 1f);
-            titleBtn.text.color = new Color(1f, 1f, 1f, alpha);
-            pressStartBtn.text.color = new Color(1f, 1f, 1f, alpha);
-
-            if (titleAnimTime >= targetTime)
-            {
-                titleTransition = false;
-                pressStartBtn.animTime = 1f; // make a smooth transition to the next animation
-            }
-        }
-        else
-        {
-            // Custom animation for "Press Start" button.
-            pressStartBtn.animTime += deltaTime;
-            float alpha = Mathf.Repeat(pressStartBtn.animTime * kPressStartAnimSpeed, 2.0f);
-            alpha = alpha > 1f ? 2f - alpha : alpha;
-            alpha = Mathf.Pow(alpha, 0.5f);
-            pressStartBtn.text.color = new Color(1f, 1f, 1f, alpha);
-        }
-
-        if (IsSubmitKey())
-        {
-            DoMenuTransition(MenuState.Game);
-            gameSelectedIndex = (int)MenuGame.NewGame;
-        }
-    }
-
-    private void UpdateGame()
-    {
-        KeyIndex keyIndex = ProcessInputs();
-
-        if (keyIndex != KeyIndex.None)
-        {
-            MenuGame nextMenu = gameKeyMaps[gameSelectedIndex][(int)keyIndex];
-            gameSelectedIndex = nextMenu != MenuGame.Count ? (int)nextMenu : gameSelectedIndex;
-        }
-
-        gameSelectedIndex = UpdateButtonAnimations(gameBtns, gameSelectedIndex);
-
-        if (IsSubmitted(gameBtns, (int)MenuGame.NewGame, gameSelectedIndex))
-        {
-            DoMenuTransition(MenuState.InGame);
-            DoLevelTransition("L1-Field");
-        }
-        else if (IsSubmitted(gameBtns, (int)MenuGame.Back, gameSelectedIndex) || IsCancelKey())
-            DoMenuTransition(MenuState.Title);
-    }
-
-    private void UpdateInGame()
-    {
-        KeyIndex keyIndex = ProcessInputs();
-
-        if (IsCancelKey())
-        {
-            DoMenuTransition(MenuState.Pause);
-            pauseSelectedIndex = (int)MenuPause.Resume;
-        }
-    }
-
-    private void UpdatePause()
-    {
-        KeyIndex keyIndex = ProcessInputs();
-
-        if (keyIndex != KeyIndex.None)
-        {
-            MenuPause nextMenu = pauseKeyMaps[pauseSelectedIndex][(int)keyIndex];
-            pauseSelectedIndex = nextMenu != MenuPause.Count ? (int)nextMenu : pauseSelectedIndex;
-        }
-
-        pauseSelectedIndex = UpdateButtonAnimations(pauseBtns, pauseSelectedIndex);
-
-        if (IsSubmitted(pauseBtns, (int)MenuPause.Resume, pauseSelectedIndex) || IsCancelKey())
-        {
-            DoMenuTransition(MenuState.InGame);
-        }
-        else if (IsSubmitted(pauseBtns, (int)MenuPause.Exit, pauseSelectedIndex))
-        {
-            DoMenuTransition(MenuState.Title);
-            DoLevelTransition("L0-StartScreen");
         }
     }
 
