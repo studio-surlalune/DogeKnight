@@ -134,6 +134,10 @@ public class Menus : MonoBehaviour
     private Button[] gameBtns = new Button[(int)MenuGame.Count];
     private Button[] pauseBtns = new Button[(int)MenuPause.Count];
 
+    bool titleFirstTransition;
+    bool titleTransition;
+    float titleAnimTime;
+
     int gameSelectedIndex;
     private MenuGame[][] gameKeyMaps;
 
@@ -192,6 +196,9 @@ public class Menus : MonoBehaviour
             new MenuPause[] { MenuPause.Resume, MenuPause.Resume, MenuPause.Count, MenuPause.Count }, // Exit
        };
 
+        titleFirstTransition = true;
+        titleTransition = false;
+        titleAnimTime = 0f;
     }
 
     // Update is called once per frame
@@ -214,6 +221,13 @@ public class Menus : MonoBehaviour
         menus[(int)state].gameObject.SetActive(false);
         menus[(int)s].gameObject.SetActive(true);
         state = s;
+
+        if (s == MenuState.Title)
+        {
+            titleFirstTransition = true;
+            titleTransition = true;
+            titleAnimTime = 0f;
+        }
     }
 
     public void DoLevelTransition(string sceneName)
@@ -370,14 +384,47 @@ public class Menus : MonoBehaviour
 
         const float kPressStartAnimSpeed = 1.5f;
 
+        ref Button titleBtn = ref titleBtns[(int)MenuTitle.Title];
         ref Button pressStartBtn = ref titleBtns[(int)MenuTitle.PressStart];
+        float deltaTime = Time.deltaTime;
 
-        // Custom animation for "Press Start" button.
-        pressStartBtn.animTime += Time.deltaTime;
-        float alpha = Mathf.Repeat(pressStartBtn.animTime * kPressStartAnimSpeed, 2.0f);
-        alpha = alpha > 1f ? 2f - alpha : alpha;
-        alpha = Mathf.Pow(alpha, 0.5f);
-        pressStartBtn.text.color = new Color(1f, 1f, 1f, alpha);
+        if (titleTransition && titleFirstTransition)
+        {
+            titleAnimTime += deltaTime;
+
+            titleBtn.text.color = new Color(1f, 1f, 1f, 0f);
+            pressStartBtn.text.color = new Color(1f, 1f, 1f, 0f);
+
+            if (titleAnimTime >= 1.2f)
+            {
+                titleFirstTransition = false;
+                titleAnimTime = 0f;
+            }
+        }
+        else if (titleTransition)
+        {
+            titleAnimTime += deltaTime;
+            float targetTime = 1.5f;
+
+            float alpha = Mathf.Min(titleAnimTime / targetTime, 1f);
+            titleBtn.text.color = new Color(1f, 1f, 1f, alpha);
+            pressStartBtn.text.color = new Color(1f, 1f, 1f, alpha);
+
+            if (titleAnimTime >= targetTime)
+            {
+                titleTransition = false;
+                pressStartBtn.animTime = 1f; // make a smooth transition to the next animation
+            }
+        }
+        else
+        {
+            // Custom animation for "Press Start" button.
+            pressStartBtn.animTime += deltaTime;
+            float alpha = Mathf.Repeat(pressStartBtn.animTime * kPressStartAnimSpeed, 2.0f);
+            alpha = alpha > 1f ? 2f - alpha : alpha;
+            alpha = Mathf.Pow(alpha, 0.5f);
+            pressStartBtn.text.color = new Color(1f, 1f, 1f, alpha);
+        }
 
         if (IsSubmitKey())
         {
@@ -475,6 +522,7 @@ public class Menus : MonoBehaviour
         return hoveredIndex != -1 ? hoveredIndex : selIndex;
     }
 
+    /// Unload current active level and load another one.
     private IEnumerator SwitchLevelCoroutine(string sceneName)
     {
         // Fade-in to black screen.

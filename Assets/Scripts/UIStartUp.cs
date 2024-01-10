@@ -16,23 +16,20 @@ public class UIStartUp : MonoBehaviour
             Menus.s_Instance.SetScreenFaded(true);
 
             // Only UI scene was loaded and nothing else, so load start screen too.
-            StartCoroutine(LoadLevelCoroutine("L0-StartScreen"));
-            if (Menus.s_Instance) // it will be null if UI scene did not load
-                Menus.s_Instance.DoMenuTransition(Menus.MenuState.Title);
+            StartCoroutine(LoadLevelCoroutine("L0-StartScreen", false));
+            Menus.s_Instance.DoMenuTransition(Menus.MenuState.Title);
         }
-        else // Handle case when we are launching specific levels for debugging.
+        else
         {
-            // Load UI if not present.
+            // Load UI if not present (when we are launching specific levels for debugging).
             if (!SceneManager.GetSceneByName("UI").isLoaded)
-                SceneManager.LoadScene("UI", LoadSceneMode.Additive);
+                StartCoroutine(LoadLevelCoroutine("UI", true));
+            
 
-            // Special case for L0-StartScreen, set the UI to title screen (for debugging).
-            if (SceneManager.GetSceneByName("L0-StartScreen").isLoaded)
-                Menus.s_Instance.DoMenuTransition(Menus.MenuState.Title);
         }
     }
 
-    private IEnumerator LoadLevelCoroutine(string sceneName)
+    private IEnumerator LoadLevelCoroutine(string sceneName, bool isUI)
     {
         AsyncOperation asyncOp = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
 
@@ -41,10 +38,16 @@ public class UIStartUp : MonoBehaviour
             yield return null; // continue execution after Update phase
 
         Scene loadedScene = SceneManager.GetSceneByName(sceneName);
-        if (loadedScene != null)
+        if (loadedScene != null && !isUI)
         {
             SceneManager.SetActiveScene(loadedScene);
             Menus.s_Instance.BeginScreenFadeIn();
+        }
+        else if (loadedScene != null && isUI)
+        {
+            yield return null; // continue execution after Update phase
+            // Give a chance to the UI to initialize.
+            Menus.s_Instance.DoMenuTransition(Menus.MenuState.InGame);
         }
     }
 }
