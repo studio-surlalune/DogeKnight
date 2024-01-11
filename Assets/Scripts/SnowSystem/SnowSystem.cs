@@ -27,16 +27,16 @@ public class SnowSystem : MonoBehaviour
 
     private CommandBuffer commandBuffer;
     private ComputeBuffer instanceBuffer;
-    private int maxInstanceCount = 1024*8;
-    private float flakePerSecond = 900.0f;
+    public int maxInstanceCount = 1024*8;
+    public float flakePerSecond = 900.0f;
     // A flake fall speed multiplier.
-    private float flakeSpeed = 0.5f;
+    public float flakeSpeed = 0.5f;
     // Flakes are spawn above the target at a specific height.
     private float ceilingRelativeToTarget = 7.0f;
     // Flakes are always killed if they reach this world space height.
-    private float absoluteFloor = 0.0f;
+    public float absoluteFloor = 0.0f;
     // Extents of the spawn box in X an Z axis.
-    private float spawnBoxExtent = 15.0f;
+    public float spawnBoxExtent = 15.0f;
     // Minimum flake radius in world unit.
     private float flakeMinRadius = 0.01f;
     // Maximum flake radius in world unit.
