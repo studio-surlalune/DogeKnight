@@ -343,7 +343,10 @@ public class MenuSystem : MonoBehaviour
             KeyIndex keyIndex = system.ProcessInputs();
 
             if (system.IsCancelKey())
+            {
                 system.DoMenuTransition(MenuIndex.Pause);
+                Game.TransitionPause(true);
+            }
         }
     }
 
@@ -409,11 +412,13 @@ public class MenuSystem : MonoBehaviour
             if (system.IsSubmitted(buttons, (int)Buttons.Resume, selectedIndex) || system.IsCancelKey())
             {
                 system.DoMenuTransition(MenuIndex.InGame);
+                Game.TransitionPause(false);
             }
             else if (system.IsSubmitted(buttons, (int)Buttons.Exit, selectedIndex))
             {
                 system.DoMenuTransition(MenuIndex.Title);
                 system.DoLevelTransition("L0-StartScreen");
+                Game.TransitionPause(false);
             }
         }
     }
@@ -467,7 +472,7 @@ public class MenuSystem : MonoBehaviour
         // Update fade screen (if any).
         UpdateFadeScreen();
 
-        menus[(int)menuIndex].Update(this, Time.deltaTime);
+        menus[(int)menuIndex].Update(this, Time.unscaledDeltaTime);
     }
 
     public void DoMenuTransition(MenuIndex nextIndex)
@@ -545,7 +550,7 @@ public class MenuSystem : MonoBehaviour
 
         const float kKeyDelay = 0.25f;
 
-        keyDelay -= Time.deltaTime;
+        keyDelay -= Time.unscaledDeltaTime;
         submitKeyUp = false;
         cancelKeyUp = false;
 
@@ -612,6 +617,7 @@ public class MenuSystem : MonoBehaviour
     private void UpdateFadeScreen()
     {
         const float kFadeScreenAnimSpeed = 1.5f;
+        float deltaTime = Time.unscaledDeltaTime;
 
         switch(fadeScreenAnim)
         {
@@ -619,7 +625,7 @@ public class MenuSystem : MonoBehaviour
                 break;
             case FadeScreenAnim.TransitionIn:
             {
-                fadeScreenAnimTime += Time.deltaTime * kFadeScreenAnimSpeed;
+                fadeScreenAnimTime += deltaTime * kFadeScreenAnimSpeed;
                 float alpha = Mathf.Min(fadeScreenAnimTime, 1f);
                 alpha = Mathf.Pow(1f - alpha, 1.5f);
                 fadeScreen.color = new Color(0f, 0f, 0f, alpha);
@@ -627,7 +633,7 @@ public class MenuSystem : MonoBehaviour
             }
             case FadeScreenAnim.TransitionOut:
             {
-                fadeScreenAnimTime += Time.deltaTime * kFadeScreenAnimSpeed;
+                fadeScreenAnimTime += deltaTime * kFadeScreenAnimSpeed;
                 float alpha = Mathf.Min(fadeScreenAnimTime, 1f);
                 alpha = Mathf.Pow(alpha, 1.5f);
                 fadeScreen.color = new Color(0f, 0f, 0f, alpha);
@@ -670,7 +676,7 @@ public class MenuSystem : MonoBehaviour
         }
 
         // perform animations.        
-        float deltaTime = Time.deltaTime;
+        float deltaTime = Time.unscaledDeltaTime;
         for (int i = 0; i < buttons.Length; ++i)
         {
             ref Button btn = ref buttons[i];
