@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -20,16 +21,17 @@ public class DevHud : MonoBehaviour
     private Text gpuTimeText;
     private Text cpuTimeText;
     private Text frameTimeText;
-
-    private Image scalingBox;
+    
     private Image refResolutionBox;
     private Image scaledResolutionBox;
+    private Image scaleTextBox;
     private Text refResolutionText;
     private Text scaledResolutionText;
     private Text scaledPercentText;
 
-    private Image logBox;
+    //private Image logBox;
     private Text logText;
+    private string[] logLines = new string[16];
 
     private FrameTiming[] timings = new FrameTiming[1];
 
@@ -55,10 +57,12 @@ public class DevHud : MonoBehaviour
         int displayHeight = Screen.height;
         Vector2 anchorTimingBox = new Vector2(0, 0);
         Vector2 anchorTimingDims = new Vector2(170, 5 + 5 + 15 + 15 + 15 + 5 + 5);
-        Vector2 anchorScalingBox = new Vector2(anchorTimingBox.x + anchorTimingDims.x, 0);
-        Vector2 anchorScalingDims = new Vector2(180, anchorTimingDims.y);
-        Vector2 anchorLogBox = new Vector2(0, anchorTimingDims.y);
-        Vector2 anchorLogDims = new Vector2(displayWidth - anchorLogBox.x, 5 + 5 + 15 + 15 + 15 + 5 + 5);
+        Vector2 anchorScalingBox = new Vector2(anchorTimingBox.x + anchorTimingDims.x, anchorTimingBox.y);
+        Vector2 anchorScalingDims = new Vector2(5 + displayWidth/16f + 5, 5 + Mathf.Max(displayHeight/16f, anchorTimingDims.y) + 5);
+        Vector2 anchorScaleTexBox = new Vector2(anchorScalingBox.x + anchorScalingDims.x, anchorTimingBox.y);
+        Vector2 anchorScaleTexDims = new Vector2(220, 5 + 5 + 15 + 15 + 5 + 5);
+        Vector2 anchorLogBox = new Vector2(0, anchorScalingBox.y - anchorScalingDims.y);
+        Vector2 anchorLogDims = new Vector2(displayWidth, displayHeight - -anchorLogBox.y);
 
         timingBox = CreateBox(canvas, "timingBox", anchorTimingBox.x + 5, anchorTimingBox.y - 5, anchorTimingDims.x - 5 - 5, anchorTimingDims.y - 5 - 5, false);
         timingBox.color = kLightGreyTransparent;
@@ -66,18 +70,18 @@ public class DevHud : MonoBehaviour
         cpuTimeText = CreateText(canvas, "cpuTime", anchorTimingBox.x + 10, anchorTimingBox.y - 10 - 15);
         frameTimeText = CreateText(canvas, "frameTime", anchorTimingBox.x + 10, anchorTimingBox.y - 10 - 15 - 15);
 
-        scalingBox = CreateBox(canvas, "scalingBox", anchorScalingBox.x + 5, anchorScalingBox.y - 5, Mathf.Max(anchorScalingDims.x, displayWidth/16) - 5 - 5, Mathf.Max(anchorScalingDims.y, displayHeight/16) - 5 - 5, false);
-        scalingBox.color = kLightGreyTransparent;
-        refResolutionBox = CreateBox(canvas, "resolutionBox", anchorScalingBox.x + 10, anchorScalingBox.y - 10, displayWidth/16, displayHeight/16);
+        refResolutionBox = CreateBox(canvas, "resolutionBox", anchorScalingBox.x + 5, anchorScalingBox.y - 5, displayWidth/16, displayHeight/16);
         refResolutionBox.color = kLightGrey;
-        scaledResolutionBox = CreateBox(canvas, "scaledResolutionBox", anchorScalingBox.x + 10, anchorScalingBox.y - 10, displayWidth/16.0f, displayHeight/16.0f, false);
-        refResolutionText = CreateText(canvas, "refRes", anchorScalingBox.x + 10 + displayWidth/16.0f + 5, anchorScalingBox.y - 10);
-        scaledResolutionText = CreateText(canvas, "scaledRes", anchorScalingBox.x + 10 + displayWidth / 16.0f + 5, anchorScalingBox.y - 10 - 15);
+        scaledResolutionBox = CreateBox(canvas, "scaledResolutionBox", anchorScalingBox.x + 5, anchorScalingBox.y - 5, displayWidth/16, displayHeight/16, false);
+        scaleTextBox = CreateBox(canvas, "scaleTexBox", anchorScaleTexBox.x + 5, anchorScaleTexBox.y - 5, anchorScaleTexDims.x - 5 - 5, anchorScaleTexDims.y - 5 - 5, false);
+        scaleTextBox.color = kLightGreyTransparent;
+        refResolutionText = CreateText(canvas, "refRes", anchorScaleTexBox.x + 10, anchorScaleTexBox.y - 10);
+        scaledResolutionText = CreateText(canvas, "scaledRes", anchorScaleTexBox.x + 10, anchorScaleTexBox.y - 10 - 15);
         scaledPercentText = CreateText(canvas, "scaledPercent", anchorScalingBox.x + 10, anchorScalingBox.y - 10);
         scaledPercentText.color = kDarkGrey;
 
-        logBox = CreateBox(canvas, "logBox", anchorLogBox.x + 5, anchorLogBox.y - 5, anchorLogDims.x - 5 - 5, anchorLogDims.y - 5 - 5, false);
-        logBox.color = kLightGreyTransparent;
+        //logBox = CreateBox(canvas, "logBox", anchorLogBox.x + 5, anchorLogBox.y - 5, anchorLogDims.x - 5 - 5, anchorLogDims.y - 5 - 5, false);
+        //logBox.color = kLightGreyTransparent;
         logText = CreateText(canvas, "log", anchorLogBox.x + 10, anchorLogBox.y - 10);
         logText.rectTransform.sizeDelta = new Vector2(anchorLogDims.x - 10 - 10, anchorLogDims.y - 10 - 10);
     }
@@ -117,8 +121,18 @@ public class DevHud : MonoBehaviour
     {
         if (!s_Instance)
             return;
-        
-        s_Instance.logText.text = msg;
+
+        string[] logLines = s_Instance.logLines;
+        string[] lines = msg.Split('\n');
+        int lineToDel = Math.Min(logLines.Length, lines.Length);
+        Array.Copy(logLines, lineToDel, logLines, 0, logLines.Length - lineToDel);
+        Array.Copy(lines, lines.Length - lineToDel, logLines, logLines.Length - lineToDel, lineToDel);
+
+        string newMsg = "";
+        foreach (string line in logLines)
+            newMsg += line + "\n";
+
+        s_Instance.logText.text = newMsg;
     }
 
     private Text CreateText(Canvas canvas, string name, float x, float y)
