@@ -31,7 +31,7 @@ public class DevHud : MonoBehaviour
 
     //private Image logBox;
     private Text logText;
-    private string[] logLines = new string[16];
+    private string[] logLines = new string[32];
 
     private FrameTiming[] timings = new FrameTiming[1];
 
@@ -82,7 +82,7 @@ public class DevHud : MonoBehaviour
 
         //logBox = CreateBox(canvas, "logBox", anchorLogBox.x + 5, anchorLogBox.y - 5, anchorLogDims.x - 5 - 5, anchorLogDims.y - 5 - 5, false);
         //logBox.color = kLightGreyTransparent;
-        logText = CreateText(canvas, "log", anchorLogBox.x + 10, anchorLogBox.y - 10);
+        logText = CreateText(canvas, "log", anchorLogBox.x + 10, anchorLogBox.y - 10, true);
         logText.rectTransform.sizeDelta = new Vector2(anchorLogDims.x - 10 - 10, anchorLogDims.y - 10 - 10);
     }
 
@@ -117,6 +117,17 @@ public class DevHud : MonoBehaviour
         scaledPercentText.text = $"{ 100 * (sw*sh) / (displayWidth*displayHeight) }%";
     }
 
+    public static void ClearLog()
+    {
+        if (!s_Instance)
+            return;
+        
+        string[] logLines = s_Instance.logLines;
+        for (int i = 0; i < logLines.Length; ++i)
+            logLines[i] = null;
+        s_Instance.logText.text = null;
+    }
+
     public static void Log(string msg)
     {
         if (!s_Instance)
@@ -135,7 +146,7 @@ public class DevHud : MonoBehaviour
         s_Instance.logText.text = newMsg;
     }
 
-    private Text CreateText(Canvas canvas, string name, float x, float y)
+    private Text CreateText(Canvas canvas, string name, float x, float y, bool outline = false)
     {
         GameObject textObject = new GameObject(name);
         textObject.transform.SetParent(canvas.transform);
@@ -148,10 +159,13 @@ public class DevHud : MonoBehaviour
         text.rectTransform.pivot = new Vector2(0, 1); // Top left pivot
         text.rectTransform.anchoredPosition3D = new Vector3(x, y, 1f); // z=1 so that it does not interfere with other UI components events
         text.rectTransform.sizeDelta = new Vector2(300, 100);
-        // Add outline to Text
-        Outline textOutline = textObject.AddComponent<Outline>();
-        textOutline.effectColor = kDarkGrey; // outline color
-        textOutline.effectDistance = new Vector2(1, -1); // outline offset
+        if (outline)
+        {
+            // Add outline to Text
+            Outline textOutline = textObject.AddComponent<Outline>();
+            textOutline.effectColor = kDarkGrey; // outline color
+            textOutline.effectDistance = new Vector2(1, -1); // outline offset
+        }
         return text;
     }
 
