@@ -12,9 +12,11 @@ public class DevHud : MonoBehaviour
     private readonly Color kLightGrey = new Color(0.66f, 0.66f, 0.66f, 0.66f);
     private readonly Color kDarkGrey = new Color(0.33f, 0.33f, 0.33f, 0.66f);
     private readonly Color kLightGreyTransparent = new Color(0.66f, 0.66f, 0.66f, 0.3f);
+    private readonly Color kDarkGreyTransparent = new Color(0.33f, 0.33f, 0.33f, 0.3f);
 
     private static DevHud s_Instance;
 
+    private Font devFont;
     private Canvas canvas;
 
     private Image timingBox;
@@ -38,6 +40,15 @@ public class DevHud : MonoBehaviour
     void Start()
     {
         s_Instance = this;
+
+        // Load developer font.
+        string fontName = "FiraCode-VariableFont_wght";
+        devFont = Resources.Load<Font>(fontName);
+        if (devFont == null)
+        {
+            Debug.Log($"Failed to load {fontName} font");
+            devFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        }
 
         // Create Canvas
         GameObject canvasObject = new GameObject("DeveloperHud Canvas");
@@ -65,7 +76,7 @@ public class DevHud : MonoBehaviour
         Vector2 anchorLogDims = new Vector2(displayWidth, displayHeight - -anchorLogBox.y);
 
         timingBox = CreateBox(canvas, "timingBox", anchorTimingBox.x + 5, anchorTimingBox.y - 5, anchorTimingDims.x - 5 - 5, anchorTimingDims.y - 5 - 5, false);
-        timingBox.color = kLightGreyTransparent;
+        timingBox.color = kDarkGreyTransparent;
         gpuTimeText = CreateText(canvas, "gpuTime", anchorTimingBox.x + 10, anchorTimingBox.y - 10);
         cpuTimeText = CreateText(canvas, "cpuTime", anchorTimingBox.x + 10, anchorTimingBox.y - 10 - 15);
         frameTimeText = CreateText(canvas, "frameTime", anchorTimingBox.x + 10, anchorTimingBox.y - 10 - 15 - 15);
@@ -74,14 +85,14 @@ public class DevHud : MonoBehaviour
         refResolutionBox.color = kLightGrey;
         scaledResolutionBox = CreateBox(canvas, "scaledResolutionBox", anchorScalingBox.x + 5, anchorScalingBox.y - 5, displayWidth/16, displayHeight/16, false);
         scaleTextBox = CreateBox(canvas, "scaleTexBox", anchorScaleTexBox.x + 5, anchorScaleTexBox.y - 5, anchorScaleTexDims.x - 5 - 5, anchorScaleTexDims.y - 5 - 5, false);
-        scaleTextBox.color = kLightGreyTransparent;
+        scaleTextBox.color = kDarkGreyTransparent;
         refResolutionText = CreateText(canvas, "refRes", anchorScaleTexBox.x + 10, anchorScaleTexBox.y - 10);
         scaledResolutionText = CreateText(canvas, "scaledRes", anchorScaleTexBox.x + 10, anchorScaleTexBox.y - 10 - 15);
         scaledPercentText = CreateText(canvas, "scaledPercent", anchorScalingBox.x + 10, anchorScalingBox.y - 10);
         scaledPercentText.color = kDarkGrey;
 
         //logBox = CreateBox(canvas, "logBox", anchorLogBox.x + 5, anchorLogBox.y - 5, anchorLogDims.x - 5 - 5, anchorLogDims.y - 5 - 5, false);
-        //logBox.color = kLightGreyTransparent;
+        //logBox.color = kDarkGreyTransparent;
         logText = CreateText(canvas, "log", anchorLogBox.x + 10, anchorLogBox.y - 10, true);
         logText.rectTransform.sizeDelta = new Vector2(anchorLogDims.x - 10 - 10, anchorLogDims.y - 10 - 10);
     }
@@ -152,13 +163,14 @@ public class DevHud : MonoBehaviour
         textObject.transform.SetParent(canvas.transform);
         Text text = textObject.AddComponent<Text>();
         text.color = kWhite;
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        text.font = devFont;
         text.fontSize = 12;
         text.rectTransform.anchorMin = new Vector2(0, 1); // Top left anchor
         text.rectTransform.anchorMax = new Vector2(0, 1); // Top left anchor
         text.rectTransform.pivot = new Vector2(0, 1); // Top left pivot
         text.rectTransform.anchoredPosition3D = new Vector3(x, y, 1f); // z=1 so that it does not interfere with other UI components events
         text.rectTransform.sizeDelta = new Vector2(300, 100);
+        text.raycastTarget = false;
         if (outline)
         {
             // Add outline to Text
@@ -180,6 +192,7 @@ public class DevHud : MonoBehaviour
         box.rectTransform.pivot = new Vector2(0, 1); // Top left pivot
         box.rectTransform.anchoredPosition3D = new Vector3(x, y, 1f); // z=1 so that it does not interfere with other UI components events
         box.rectTransform.sizeDelta = new Vector2(w, h);
+        box.raycastTarget = false;
         if (outline)
         {
             // Add outline
