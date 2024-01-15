@@ -349,11 +349,11 @@ public class MenuSystem : MonoBehaviour
 
         public void Update(MenuSystem system, float deltaTime)
         {
-            Creature mainChar = Game.dogeKnight;
+            Creature mainChar = Game.FindDogeKnight();
             if (mainChar != null)
             {
-                hpValue.text = $"{mainChar.hp} / {mainChar.hpMax}";
-                mpValue.text = $"{mainChar.mp} / {mainChar.mpMax}";
+                hpValue.text = $"{mainChar.stats.hp} / {mainChar.stats.hpMax}";
+                mpValue.text = $"{mainChar.stats.mp} / {mainChar.stats.mpMax}";
             }
             else
             {

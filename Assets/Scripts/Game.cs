@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Assertions;
 
-public class Creature
+public struct CreatureStats
 {
     public int hp;
     public int mp;
@@ -15,30 +15,56 @@ public class Creature
     public int level;
     public int hpMax;
     public int mpMax;
+
+    public static CreatureStats Instanciate(Creature.Type type)
+    {
+        switch(type)
+        {
+            case Creature.Type.DogeKnight:  return new CreatureStats { hp=100, mp=100, atk=10, def=10, spd=10, luck=10, exp=0, level=1, hpMax=100, mpMax=100 };
+            case Creature.Type.Slime:       return new CreatureStats { hp=10, mp=0, atk=2, def=2, spd=4, luck=10, exp=0, level=1, hpMax=10, mpMax=0 };
+            case Creature.Type.Turtle:      return new CreatureStats { hp=15, mp=0, atk=2, def=4, spd=2, luck=10, exp=0, level=1, hpMax=15, mpMax=0 };
+            case Creature.Type.Skeleton:    return new CreatureStats { hp=15, mp=0, atk=5, def=2, spd=4, luck=10, exp=0, level=1, hpMax=10, mpMax=0 };
+            default:
+                Assert.IsTrue(false);
+                return new CreatureStats();
+        }
+    }
+}
+
+public class Creature
+{
+    public enum Type
+    {
+        DogeKnight,
+        Slime,
+        Turtle,
+        Skeleton,
+    }
+
+    public Creature(Type type, GameObject gameObject)
+    {
+        stats = CreatureStats.Instanciate(type);
+        this.gameObject = gameObject;
+        this.type = type;
+    }
+
+    public CreatureStats stats;
+
+    // Unity game object.
+    public GameObject gameObject;
+
+    public Type type;
 }
 
 public class DogeKnight : Creature
 {
-    public GameObject gameObject;
-
-    public DogeKnight()
-    {
-        hp = 100;
-        mp = 100;
-        atk = 10;
-        def = 10;
-        spd = 10;
-        luck = 10;
-        exp = 0;
-        level = 1;
-        hpMax = 100;
-        mpMax = 100;
-    }
+    public DogeKnight(Type type, GameObject gameObject) : base(type, gameObject)
+    {}
 }
 
 public class Game : MonoBehaviour
 {
-    public static DogeKnight dogeKnight;
+    public static List<Creature> creatures = new List<Creature>();
 
     private static Game s_Instance;
     private static bool isPaused;
@@ -64,6 +90,7 @@ public class Game : MonoBehaviour
     /// Create a new game instance.
     public static void NewGame()
     {
+        creatures.Clear();
     }
 
     /// Set the game to pause/unpause state (with animation).
@@ -80,18 +107,35 @@ public class Game : MonoBehaviour
         }
     }
 
-    public static void RegisterDogeKnightProxy(GameObject obj)
+    public static void RegisterCreatureProxy(Creature.Type creatureType, GameObject obj)
     {
-        if (dogeKnight == null)
-            dogeKnight = new DogeKnight();
+        Creature creature;
+        if (creatureType == Creature.Type.DogeKnight)
+            creature = new DogeKnight(creatureType, obj);
+        else
+            creature = new Creature(creatureType, obj);
         
-        dogeKnight.gameObject = obj;
+        creatures.Add(creature);
+    }
+
+    public static DogeKnight FindDogeKnight()
+    {
+        foreach (Creature creature in creatures)
+            if (creature.type == Creature.Type.DogeKnight)
+                return creature as DogeKnight;
+
+        return null;
     }
 
     /// Callback for game update.
     private static void UpdateGame()
     {
         UpdatePauseAnimation();
+
+        if (isPaused)
+            return;
+        
+        UpdateCreatures();
     }
 
     private static void UpdatePauseAnimation()
@@ -106,6 +150,13 @@ public class Game : MonoBehaviour
                 s = s * s;
                 Time.timeScale = s;
             }
+        }
+    }
+
+    private static void UpdateCreatures()
+    {
+        foreach (Creature creature in creatures)
+        {
         }
     }
 }
