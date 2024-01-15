@@ -1500,6 +1500,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7153141402127884706, guid: a4ec793513574cd49719c4055b630e2b, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1662612863}
+    - targetCorrespondingSourceObject: {fileID: 7153141402127884706, guid: a4ec793513574cd49719c4055b630e2b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1662612865}
   m_SourcePrefab: {fileID: 100100000, guid: a4ec793513574cd49719c4055b630e2b, type: 3}
 --- !u!1 &955412858
 GameObject:
@@ -3285,6 +3288,19 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &1662612865
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1662612862}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 529b5a7c2791642098e765fe44cc6ddf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  creatureType: 1
 --- !u!1001 &1716577834
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3763,7 +3779,7 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2066896392038131574, guid: 45288819fde2143449a96207b14db0bb, type: 3}
   m_PrefabInstance: {fileID: 2123739106}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &2012977544
+--- !u!114 &2012977543
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -3772,9 +3788,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 2012977535}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cd93bd08af82e462a8c605361bd97f47, type: 3}
+  m_Script: {fileID: 11500000, guid: 529b5a7c2791642098e765fe44cc6ddf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  creatureType: 0
 --- !u!4 &2082141463 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5705539758440290059, guid: 1caa73a6296593c46bb83d678ff6609b, type: 3}
@@ -3871,7 +3888,7 @@ PrefabInstance:
       addedObject: {fileID: 2012977540}
     - targetCorrespondingSourceObject: {fileID: 2066896392038628118, guid: 45288819fde2143449a96207b14db0bb, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 2012977544}
+      addedObject: {fileID: 2012977543}
     - targetCorrespondingSourceObject: {fileID: 2958915110833956375, guid: 45288819fde2143449a96207b14db0bb, type: 3}
       insertIndex: -1
       addedObject: {fileID: 394009428}
