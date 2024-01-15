@@ -3,8 +3,43 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Assertions;
 
+public class Creature
+{
+    public int hp;
+    public int mp;
+    public int atk;
+    public int def;
+    public int spd;
+    public int luck;
+    public int exp;
+    public int level;
+    public int hpMax;
+    public int mpMax;
+}
+
+public class DogeKnight : Creature
+{
+    public GameObject gameObject;
+
+    public DogeKnight()
+    {
+        hp = 100;
+        mp = 100;
+        atk = 10;
+        def = 10;
+        spd = 10;
+        luck = 10;
+        exp = 0;
+        level = 1;
+        hpMax = 100;
+        mpMax = 100;
+    }
+}
+
 public class Game : MonoBehaviour
 {
+    public static DogeKnight dogeKnight;
+
     private static Game s_Instance;
     private static bool isPaused;
     private static float pauseAnimTime;
@@ -26,11 +61,12 @@ public class Game : MonoBehaviour
         UpdateGame();
     }
 
-    public static void UpdateGame()
+    /// Create a new game instance.
+    public static void NewGame()
     {
-        UpdatePauseAnimation();
     }
 
+    /// Set the game to pause/unpause state (with animation).
     public static void TransitionPause(bool pause)
     {
         if (pause == isPaused)
@@ -42,6 +78,20 @@ public class Game : MonoBehaviour
             Time.timeScale = 0f;
             pauseAnimTime = 0;
         }
+    }
+
+    public static void RegisterDogeKnightProxy(GameObject obj)
+    {
+        if (dogeKnight == null)
+            dogeKnight = new DogeKnight();
+        
+        dogeKnight.gameObject = obj;
+    }
+
+    /// Callback for game update.
+    private static void UpdateGame()
+    {
+        UpdatePauseAnimation();
     }
 
     private static void UpdatePauseAnimation()

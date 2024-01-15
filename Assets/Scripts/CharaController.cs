@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using System;
 
 public class CharaController : MonoBehaviour
@@ -54,8 +55,11 @@ public class CharaController : MonoBehaviour
         animator.SetBool("IsRunning", characterDirWS.sqrMagnitude > 0.3f);
         animator.SetBool("IsOnFloor", isOnFloor);
 
+        // Maybe the event should be processed only by the UI system (mouse click).
+        bool isOverUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject() && Input.GetMouseButtonDown(0);
+
         // Attack
-        if (Input.GetButtonDown("Fire1"))
+        if (!isOverUI && Input.GetButtonDown("Fire1"))
             animator.SetTrigger("TriggerAttack01");
 
         // Jumping

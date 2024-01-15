@@ -19,8 +19,11 @@ public class UIStartUp : MonoBehaviour
             StartCoroutine(LoadLevelCoroutine("L0-StartScreen", false));
             MenuSystem.s_Instance.DoMenuTransition(MenuSystem.MenuIndex.Title);
         }
-        else
+        else // level development/debugging
         {
+            // Create a new game instance for debugging.
+            Game.NewGame();
+
             // Load UI if not present (when we are launching specific levels for debugging).
             if (!SceneManager.GetSceneByName("UI").isLoaded)
                 StartCoroutine(LoadLevelCoroutine("UI", true));

@@ -318,9 +318,18 @@ public class MenuSystem : MonoBehaviour
     {
         Transform transform;
 
+        TMP_Text hpTitle;
+        TMP_Text hpValue;
+        TMP_Text mpTitle;
+        TMP_Text mpValue;
+
         public void Init(MenuSystem system, Transform transform)
         {
             this.transform = transform;
+            hpTitle = transform.Find("HP")?.GetComponent<TMP_Text>();
+            hpValue = transform.Find("HP Value")?.GetComponent<TMP_Text>();
+            mpTitle = transform.Find("MP")?.GetComponent<TMP_Text>();
+            mpValue = transform.Find("MP Value")?.GetComponent<TMP_Text>();
         }
 
         public void SetActive(bool active)
@@ -340,6 +349,18 @@ public class MenuSystem : MonoBehaviour
 
         public void Update(MenuSystem system, float deltaTime)
         {
+            Creature mainChar = Game.dogeKnight;
+            if (mainChar != null)
+            {
+                hpValue.text = $"{mainChar.hp} / {mainChar.hpMax}";
+                mpValue.text = $"{mainChar.mp} / {mainChar.mpMax}";
+            }
+            else
+            {
+                hpValue.text = "0 / 0";
+                mpValue.text = "0 / 0";
+            }
+
             KeyIndex keyIndex = system.ProcessInputs();
 
             if (system.IsCancelKey())
@@ -440,6 +461,8 @@ public class MenuSystem : MonoBehaviour
 
     private IMenu[] menus = new IMenu[(int)MenuIndex.Count];
 
+    //_____________________________________________________________________________________________
+
     void Awake()
     {
         s_Instance = this;
@@ -510,6 +533,16 @@ public class MenuSystem : MonoBehaviour
         fadeScreenAnimTime = 0f;
         fadeScreen.color = new Color(0f, 0f, 0f, faded ? 1f : 0f);
     }
+
+    //_____________________________________________________________________________________________
+
+    public void OnButtonClicked_InGame_Escape()
+    {
+        DoMenuTransition(MenuIndex.Pause);
+        Game.TransitionPause(true);
+    }
+
+    //_____________________________________________________________________________________________
 
     private IMenu FindMenu(MenuIndex index, string name)
     {
