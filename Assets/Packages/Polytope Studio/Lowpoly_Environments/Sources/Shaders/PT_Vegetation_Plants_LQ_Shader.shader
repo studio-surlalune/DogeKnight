@@ -151,7 +151,7 @@ Shader "Polytope Studio/PT_Vegetation_Plants_LQ_Shader"
 			float3 lightAtten = lerp( _LightColor0.rgb, gi.light.color, _TransShadow );
 			#endif
 			half3 lightDir = gi.light.dir + s.Normal * _TransNormalDistortion;
-//(kc)			half transVdotL = pow( saturate( dot( viewDir, -lightDir ) ), _TransScattering );
+//(kchang)			half transVdotL = pow( saturate( dot( viewDir, -lightDir ) ), _TransScattering );
 			half transVdotL = sq( saturate( dot( viewDir, -lightDir ) ));
 			half3 translucency = lightAtten * (transVdotL * _TransDirect + gi.indirect.diffuse * _TransAmbient) * s.Translucency;
 			half4 c = half4( s.Albedo * translucency * _Translucency, 0 );
@@ -181,7 +181,7 @@ Shader "Polytope Studio/PT_Vegetation_Plants_LQ_Shader"
 		{
 			float2 uv_BaseTexture2 = i.uv_texcoord;
 			float4 tex2DNode2 = tex2D( _BaseTexture, uv_BaseTexture2 );
-//(kc)			float clampResult738 = clamp( pow( ( i.uv_texcoord.y * _Gradient ) , _GradientPower ) , 0.0 , 1.0 );
+//(kchang)			float clampResult738 = clamp( pow( ( i.uv_texcoord.y * _Gradient ) , _GradientPower ) , 0.0 , 1.0 );
 			float clampResult738 = clamp( i.uv_texcoord.y * _Gradient , 0.0 , 1.0 );
 			float4 lerpResult557 = lerp( _GroundColor , _TopColor , clampResult738);
 			float4 GRADIENT558 = lerpResult557;
