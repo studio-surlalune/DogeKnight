@@ -9,9 +9,9 @@ public class DynamicResController : MonoBehaviour
     private const int kEMAFrameCount = 8;
     private const int kTileSize = 32;
     /// Target frame time in milliseconds.
-    private static float targetFrameTimeMS = 32.0f;
+    private static float targetFrameTimeMS = GlobalConfig.TargetFrameTimeMS;
     /// delta time to wiggle around in milliseconds.
-    private static float targetFrameDeltaMS = 1.0f;
+    private static float targetFrameDeltaMS = GlobalConfig.TargetFrameDeltaMS;
     /// EMA gpu time (without present).
     private static float emaGpuTimeMS;
     /// We may skip some frame to decide dynamic resolution in order to slow-down the logic.

@@ -20,7 +20,7 @@ public class DevHud : MonoBehaviour
 
     private static DevHud s_Instance;
 
-    private Layout layout = Layout.BottomLeft;
+    private Layout layout = GlobalConfig.DevHudLayout;
 
     private Font devFont;
     private Canvas canvas;
