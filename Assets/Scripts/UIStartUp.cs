@@ -19,7 +19,7 @@ public class UIStartUp : MonoBehaviour
             StartCoroutine(LoadLevelCoroutine("L0-StartScreen", false));
             MenuSystem.s_Instance.DoMenuTransition(MenuSystem.MenuIndex.Title);
         }
-        else // level development/debugging
+        else if (SceneManager.sceneCount == 1) // level development/debugging
         {
             // Create a new game instance for debugging.
             Game.NewGame();
