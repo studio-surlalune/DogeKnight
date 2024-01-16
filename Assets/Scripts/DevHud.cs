@@ -1,12 +1,16 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class DevHud : MonoBehaviour
 {
     #if UNITY_EDITOR || DEVELOPMENT_BUILD
+
+    public enum Layout
+    {
+        TopLeft,
+        BottomLeft,
+    }
 
     private readonly Color kWhite = new Color(1.0f, 1.0f, 1.0f, 0.66f);
     private readonly Color kLightGrey = new Color(0.66f, 0.66f, 0.66f, 0.66f);
@@ -15,6 +19,8 @@ public class DevHud : MonoBehaviour
     private readonly Color kDarkGreyTransparent = new Color(0.33f, 0.33f, 0.33f, 0.3f);
 
     private static DevHud s_Instance;
+
+    private Layout layout = Layout.BottomLeft;
 
     private Font devFont;
     private Canvas canvas;
@@ -33,7 +39,7 @@ public class DevHud : MonoBehaviour
 
     //private Image logBox;
     private Text logText;
-    private string[] logLines = new string[32];
+    private string[] logLines = new string[128];
 
     private FrameTiming[] timings = new FrameTiming[1];
 
@@ -66,14 +72,31 @@ public class DevHud : MonoBehaviour
 
         int displayWidth = Screen.width;
         int displayHeight = Screen.height;
-        Vector2 anchorTimingBox = new Vector2(0, 0);
+
         Vector2 anchorTimingDims = new Vector2(170, 5 + 5 + 15 + 15 + 15 + 5 + 5);
-        Vector2 anchorScalingBox = new Vector2(anchorTimingBox.x + anchorTimingDims.x, anchorTimingBox.y);
         Vector2 anchorScalingDims = new Vector2(5 + displayWidth/16f + 5, 5 + Mathf.Max(displayHeight/16f, anchorTimingDims.y) + 5);
-        Vector2 anchorScaleTexBox = new Vector2(anchorScalingBox.x + anchorScalingDims.x, anchorTimingBox.y);
         Vector2 anchorScaleTexDims = new Vector2(220, 5 + 5 + 15 + 15 + 5 + 5);
-        Vector2 anchorLogBox = new Vector2(0, anchorScalingBox.y - anchorScalingDims.y);
-        Vector2 anchorLogDims = new Vector2(displayWidth, displayHeight - -anchorLogBox.y);
+        Vector2 anchorLogDims = new Vector2(displayWidth, displayHeight * 0.75f);
+
+        Vector2 anchorTimingBox;
+        Vector2 anchorScalingBox;
+        Vector2 anchorScaleTexBox;
+        Vector2 anchorLogBox;
+
+        if (layout == Layout.TopLeft)
+        {
+            anchorTimingBox = new Vector2(0, 0);
+            anchorScalingBox = new Vector2(anchorTimingBox.x + anchorTimingDims.x, anchorTimingBox.y);
+            anchorScaleTexBox = new Vector2(anchorScalingBox.x + anchorScalingDims.x, anchorTimingBox.y);
+            anchorLogBox = new Vector2(anchorTimingBox.x, anchorTimingBox.y - anchorScalingDims.y);
+        }
+        else
+        {
+            anchorTimingBox = new Vector2(0, -displayHeight + anchorTimingDims.y);
+            anchorScalingBox = new Vector2(anchorTimingBox.x + anchorTimingDims.x, anchorTimingBox.y);
+            anchorScaleTexBox = new Vector2(anchorScalingBox.x + anchorScalingDims.x, anchorTimingBox.y);
+            anchorLogBox = new Vector2(anchorTimingBox.x, anchorTimingBox.y - anchorTimingDims.y + anchorScalingDims.y + anchorLogDims.y);
+        }
 
         timingBox = CreateBox(canvas, "timingBox", anchorTimingBox.x + 5, anchorTimingBox.y - 5, anchorTimingDims.x - 5 - 5, anchorTimingDims.y - 5 - 5, false);
         timingBox.color = kDarkGreyTransparent;
@@ -95,6 +118,8 @@ public class DevHud : MonoBehaviour
         //logBox.color = kDarkGreyTransparent;
         logText = CreateText(canvas, "log", anchorLogBox.x + 10, anchorLogBox.y - 10, true);
         logText.rectTransform.sizeDelta = new Vector2(anchorLogDims.x - 10 - 10, anchorLogDims.y - 10 - 10);
+        logText.horizontalOverflow = HorizontalWrapMode.Overflow;
+        logText.alignment = (layout == Layout.TopLeft ? TextAnchor.LowerLeft : TextAnchor.LowerLeft);
     }
 
     void Update()
