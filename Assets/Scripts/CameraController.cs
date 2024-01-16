@@ -7,7 +7,6 @@ public class CameraController : MonoBehaviour
     public GameObject trackingTarget;
     private float cameraFocusDistance = 16.0f;
     private float cameraSpeed = 2.5f;
-    private bool resetFrame = true;
 
     // Start is called before the first frame update
     void Start()

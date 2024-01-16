@@ -22,9 +22,6 @@ public class SnowSystem : MonoBehaviour
     // This singleton is needed to circumvent IJob limitations.
     private static SnowSystem s_Instance;
 
-    // Keep our own pointer to the camera to avoid confusion when rendering within the Editor Scene camera.
-    private Camera camera;
-
     private CommandBuffer commandBuffer;
     private ComputeBuffer instanceBuffer;
     public int maxInstanceCount = 1024*8;
@@ -101,8 +98,6 @@ public class SnowSystem : MonoBehaviour
         #endif
         
         s_Instance = this;
-
-        camera = GetComponent<Camera>();
 
         flakeRadiusRangeInv = 1.0f / (flakeMaxRadius - flakeMinRadius);
         turbulenceStride = turbulenceWidth * turbulenceHeight;
@@ -409,7 +404,9 @@ public class SnowSystem : MonoBehaviour
                 float velLength = flake.velWS.magnitude;
                 Vector3 n = flake.velWS / velLength; // Bug UUM-41893" we shouldn't need to normalize
                 // *1.5 to make it less likely to miss collision with terrain
+                #pragma warning disable 0618
                 queries[raycastCount] = new RaycastCommand(flake.posWS, n, velLength * 1.5f * deltaTime);
+                #pragma warning restore 0618
                 flake.raycastResultIndex = raycastCount++;
             }
             float ppp = flake.posWS.y;
