@@ -20,7 +20,7 @@ public struct CreatureStats
     {
         switch(type)
         {
-            case Creature.Type.DogeKnight:  return new CreatureStats { hp=100, mp=100, atk=10, def=10, spd=10, luck=10, exp=0, level=1, hpMax=100, mpMax=100 };
+            case Creature.Type.DogeKnight:  return new CreatureStats { hp=100, mp=10, atk=10, def=10, spd=10, luck=10, exp=0, level=1, hpMax=100, mpMax=10 };
             case Creature.Type.Slime:       return new CreatureStats { hp=10, mp=0, atk=2, def=2, spd=4, luck=10, exp=0, level=1, hpMax=10, mpMax=0 };
             case Creature.Type.Turtle:      return new CreatureStats { hp=15, mp=0, atk=2, def=4, spd=2, luck=10, exp=0, level=1, hpMax=15, mpMax=0 };
             case Creature.Type.Skeleton:    return new CreatureStats { hp=15, mp=0, atk=5, def=2, spd=4, luck=10, exp=0, level=1, hpMax=10, mpMax=0 };
