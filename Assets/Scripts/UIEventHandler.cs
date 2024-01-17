@@ -1,17 +1,18 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
 
 public class UIEventHandler : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
 {
     private static float clickedTime = -1f;
-    private static TMP_Text clickedText;
-    private static TMP_Text hoveredText;
+    private static Graphic clickedItem;
+    private static Graphic hoveredItem;
     private static bool mouseOrTouchEnabled;
 
-    private TMP_Text tmpText;
+    private Graphic item;
 
     public static bool IsMouseOrTouchActive()
     {
@@ -20,36 +21,38 @@ public class UIEventHandler : MonoBehaviour, IPointerEnterHandler, IPointerExitH
         return mouseOrTouchEnabled;
     }
 
-    public static bool IsClicked(TMP_Text t)
+    public static bool IsClicked(Graphic t)
     {
-        return clickedText == t && Mathf.Abs(clickedTime - Time.time) < 0.033f;
+        return clickedItem == t && Mathf.Abs(clickedTime - Time.time) < 0.033f;
     }
 
-    public static bool IsHovered(TMP_Text t)
+    public static bool IsHovered(Graphic t)
     {
-        return t == hoveredText;
+        return t == hoveredItem;
     }
 
     private void Awake()
     {
-        tmpText = GetComponent<TMP_Text>();
+        item = GetComponent<TMP_Text>();
+        if (item == null)
+            item = GetComponent<Image>();
     }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
-        hoveredText = tmpText;
+        hoveredItem = item;
         mouseOrTouchEnabled = true;
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        hoveredText = null;
+        hoveredItem = null;
         mouseOrTouchEnabled = true;
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        clickedText = tmpText;
+        clickedItem = item;
         clickedTime = Time.time;
         mouseOrTouchEnabled = true;
     }

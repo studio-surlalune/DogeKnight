@@ -7,6 +7,7 @@ using TMPro;
 
 public class MenuSystem : MonoBehaviour
 {
+    // Transition in/out black screen (mostly when switching scenes/levels).
     private enum FadeScreenAnim
     {
         None,
@@ -21,6 +22,7 @@ public class MenuSystem : MonoBehaviour
         Game,
         InGame,
         Pause,
+        GameOver,
         Count,
     }
 
@@ -43,7 +45,8 @@ public class MenuSystem : MonoBehaviour
     }
 
      //_____________________________________________________________________________________________
-   struct Button
+    
+    struct Button
     {
         private const float kAnimSpeed = 5.0f;
         private const float kFontFactor = 1.25f;
@@ -108,6 +111,8 @@ public class MenuSystem : MonoBehaviour
 
     //_____________________________________________________________________________________________
 
+    /// Initial menu state on start-up.
+    /// It automatically transition to TitleMenu.
     class EmptyMenu: IMenu
     {
         Transform transform;
@@ -138,6 +143,7 @@ public class MenuSystem : MonoBehaviour
 
     //_____________________________________________________________________________________________
 
+    /// Game title menu.
     class TitleMenu: IMenu
     {
         private enum Buttons
@@ -239,6 +245,7 @@ public class MenuSystem : MonoBehaviour
 
     //_____________________________________________________________________________________________
 
+    /// New game, continue game, ....
     class GameMenu: IMenu
     {
         private enum Buttons
@@ -314,6 +321,7 @@ public class MenuSystem : MonoBehaviour
 
     //_____________________________________________________________________________________________
 
+    /// When in actual gameplay.
     class InGameMenu: IMenu
     {
         Transform transform;
@@ -323,6 +331,8 @@ public class MenuSystem : MonoBehaviour
         TMP_Text mpTitle;
         TMP_Text mpValue;
 
+        Image escapeIcon;
+
         public void Init(MenuSystem system, Transform transform)
         {
             this.transform = transform;
@@ -330,6 +340,7 @@ public class MenuSystem : MonoBehaviour
             hpValue = transform.Find("HP Value")?.GetComponent<TMP_Text>();
             mpTitle = transform.Find("MP")?.GetComponent<TMP_Text>();
             mpValue = transform.Find("MP Value")?.GetComponent<TMP_Text>();
+            escapeIcon = transform.Find("Escape")?.GetComponent<Image>();
         }
 
         public void SetActive(bool active)
@@ -363,7 +374,8 @@ public class MenuSystem : MonoBehaviour
 
             KeyIndex keyIndex = system.ProcessInputs();
 
-            if (system.IsCancelKey())
+            if (UIEventHandler.IsMouseOrTouchActive() && UIEventHandler.IsClicked(escapeIcon) // mouse or touch
+             || system.IsCancelKey()) // gamepad, keyboard
             {
                 system.DoMenuTransition(MenuIndex.Pause);
                 Game.TransitionPause(true);
@@ -373,6 +385,7 @@ public class MenuSystem : MonoBehaviour
 
     //_____________________________________________________________________________________________
 
+    /// In the gameplay pause menu.
     class PauseMenu: IMenu
     {
         private enum Buttons
@@ -397,8 +410,8 @@ public class MenuSystem : MonoBehaviour
 
             keyMap = new Buttons[(int)Buttons.Count][]
             {
-                new Buttons[] { Buttons.Exit, Buttons.Exit, Buttons.Count, Buttons.Count }, // Resume
-                new Buttons[] { Buttons.Resume, Buttons.Resume, Buttons.Count, Buttons.Count }, // Exit
+                new Buttons[] { Buttons.Exit, Buttons.Resume, Buttons.Count, Buttons.Count }, // Resume
+                new Buttons[] { Buttons.Resume, Buttons.Exit, Buttons.Count, Buttons.Count }, // Exit
             };
         }
 
@@ -431,6 +444,80 @@ public class MenuSystem : MonoBehaviour
             selectedIndex = UpdateButtonAnimations(buttons, selectedIndex);
 
             if (system.IsSubmitted(buttons, (int)Buttons.Resume, selectedIndex) || system.IsCancelKey())
+            {
+                system.DoMenuTransition(MenuIndex.InGame);
+                Game.TransitionPause(false);
+            }
+            else if (system.IsSubmitted(buttons, (int)Buttons.Exit, selectedIndex))
+            {
+                system.DoMenuTransition(MenuIndex.Title);
+                system.DoLevelTransition("L0-StartScreen");
+                Game.TransitionPause(false);
+            }
+        }
+    }
+
+    //_____________________________________________________________________________________________
+
+    /// In the gameplay pause menu.
+    class GameOverMenu: IMenu
+    {
+        private enum Buttons
+        {
+            Retry,
+            Exit,
+            Count,
+        }
+
+        private Button[] buttons = new Button[(int)Buttons.Count];
+        Transform transform;
+        int selectedIndex;
+        private Buttons[][] keyMap;
+
+
+        public void Init(MenuSystem system, Transform transform)
+        {
+            this.transform = transform;
+
+            buttons[(int)Buttons.Retry] = FindButton(transform, "Retry");
+            buttons[(int)Buttons.Exit] = FindButton(transform, "Exit");
+
+            keyMap = new Buttons[(int)Buttons.Count][]
+            {
+                new Buttons[] { Buttons.Exit, Buttons.Retry, Buttons.Count, Buttons.Count }, // Retry
+                new Buttons[] { Buttons.Retry, Buttons.Exit, Buttons.Count, Buttons.Count }, // Exit
+            };
+        }
+
+        public void SetActive(bool active)
+        {
+            transform.gameObject.SetActive(false);
+        }
+
+        public void Enter(MenuSystem system, MenuIndex previousIndex)
+        {
+            transform.gameObject.SetActive(true);
+            selectedIndex = (int)Buttons.Retry;
+        }
+
+        public void Exit(MenuSystem system, MenuIndex nextIndex)
+        {
+            transform.gameObject.SetActive(false);
+        }
+
+        public void Update(MenuSystem system, float deltaTime)
+        {
+            KeyIndex keyIndex = system.ProcessInputs();
+
+            if (keyIndex != KeyIndex.None)
+            {
+                Buttons nextMenu = keyMap[selectedIndex][(int)keyIndex];
+                selectedIndex = nextMenu != Buttons.Count ? (int)nextMenu : selectedIndex;
+            }
+
+            selectedIndex = UpdateButtonAnimations(buttons, selectedIndex);
+
+            if (system.IsSubmitted(buttons, (int)Buttons.Retry, selectedIndex))
             {
                 system.DoMenuTransition(MenuIndex.InGame);
                 Game.TransitionPause(false);
@@ -483,6 +570,7 @@ public class MenuSystem : MonoBehaviour
         menus[(int)MenuIndex.Game] = FindMenu(MenuIndex.Game, "MenuGame");
         menus[(int)MenuIndex.InGame] = FindMenu(MenuIndex.InGame, "MenuInGame");
         menus[(int)MenuIndex.Pause] = FindMenu(MenuIndex.Pause, "MenuPause");
+        menus[(int)MenuIndex.GameOver] = FindMenu(MenuIndex.Pause, "MenuGameOver");
 
         // Initial menu states.
         foreach (IMenu m in menus)
@@ -532,14 +620,6 @@ public class MenuSystem : MonoBehaviour
         fadeScreenAnim = FadeScreenAnim.None;
         fadeScreenAnimTime = 0f;
         fadeScreen.color = new Color(0f, 0f, 0f, faded ? 1f : 0f);
-    }
-
-    //_____________________________________________________________________________________________
-
-    public void OnButtonClicked_InGame_Escape()
-    {
-        DoMenuTransition(MenuIndex.Pause);
-        Game.TransitionPause(true);
     }
 
     //_____________________________________________________________________________________________
