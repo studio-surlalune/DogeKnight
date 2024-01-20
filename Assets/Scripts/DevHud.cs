@@ -119,7 +119,8 @@ public class DevHud : MonoBehaviour
         logText = CreateText(canvas, "log", anchorLogBox.x + 10, anchorLogBox.y - 10, true);
         logText.rectTransform.sizeDelta = new Vector2(anchorLogDims.x - 10 - 10, anchorLogDims.y - 10 - 10);
         logText.horizontalOverflow = HorizontalWrapMode.Overflow;
-        logText.alignment = (layout == Layout.TopLeft ? TextAnchor.LowerLeft : TextAnchor.LowerLeft);
+        logText.verticalOverflow = VerticalWrapMode.Truncate;
+        logText.alignment = TextAnchor.LowerLeft;
 
         int lineCapacity = (int)(logText.rectTransform.rect.height / logText.fontSize);
         logLines = new string[lineCapacity];
