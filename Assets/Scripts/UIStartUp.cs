@@ -13,11 +13,11 @@ public class UIStartUp : MonoBehaviour
         // Normal game boot up.
         if (SceneManager.sceneCount == 1 && SceneManager.GetSceneByName("UI").isLoaded)
         {
-            MenuSystem.s_Instance.SetScreenFaded(true);
+            MenuSystem.SetScreenFaded(true);
 
             // Only UI scene was loaded and nothing else, so load start screen too.
             StartCoroutine(LoadLevelCoroutine("L0-StartScreen", false));
-            MenuSystem.s_Instance.DoMenuTransition(MenuSystem.MenuIndex.Title);
+            MenuSystem.DoMenuTransition(MenuSystem.MenuIndex.Title);
         }
         else if (SceneManager.sceneCount == 1) // level development/debugging
         {
@@ -44,13 +44,13 @@ public class UIStartUp : MonoBehaviour
         if (loadedScene != null && !isUI)
         {
             SceneManager.SetActiveScene(loadedScene);
-            MenuSystem.s_Instance.BeginScreenFadeIn();
+            MenuSystem.BeginScreenFadeIn();
         }
         else if (loadedScene != null && isUI)
         {
             yield return null; // continue execution after Update phase
             // Give a chance to the UI to initialize.
-            MenuSystem.s_Instance.DoMenuTransition(MenuSystem.MenuIndex.InGame);
+            MenuSystem.DoMenuTransition(MenuSystem.MenuIndex.InGame);
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.Assertions;
 using TMPro;
 
 public class MenuSystem : MonoBehaviour
@@ -99,14 +100,14 @@ public class MenuSystem : MonoBehaviour
     //_____________________________________________________________________________________________
     interface IMenu
     {
-        void Init(MenuSystem system, Transform transform);
+        void Init(Transform transform);
 
         void SetActive(bool active);
 
-        void Enter(MenuSystem system, MenuIndex previousIndex);
-        void Exit(MenuSystem system, MenuIndex nextIndex);
+        void Enter(MenuIndex previousIndex);
+        void Exit(MenuIndex nextIndex);
 
-        void Update(MenuSystem system, float deltaTime);
+        void Update(float deltaTime);
     }
 
     //_____________________________________________________________________________________________
@@ -117,7 +118,7 @@ public class MenuSystem : MonoBehaviour
     {
         Transform transform;
 
-        public void Init(MenuSystem system, Transform transform)
+        public void Init(Transform transform)
         {
             this.transform = transform;
         }
@@ -127,17 +128,17 @@ public class MenuSystem : MonoBehaviour
             transform.gameObject.SetActive(false);
         }
 
-        public void Enter(MenuSystem system, MenuIndex previousIndex)
+        public void Enter(MenuIndex previousIndex)
         {
             transform.gameObject.SetActive(true);
         }
 
-        public void Exit(MenuSystem system, MenuIndex nextIndex)
+        public void Exit(MenuIndex nextIndex)
         {
             transform.gameObject.SetActive(false);
         }
 
-        public void Update(MenuSystem system, float deltaTime)
+        public void Update(float deltaTime)
         {}
     }
 
@@ -158,7 +159,7 @@ public class MenuSystem : MonoBehaviour
         int transitionStep;
         float animTime;
 
-        public void Init(MenuSystem system, Transform transform)
+        public void Init(Transform transform)
         {
             this.transform = transform;
             transitionStep = 0;
@@ -173,14 +174,14 @@ public class MenuSystem : MonoBehaviour
             transform.gameObject.SetActive(false);
         }
 
-        public void Enter(MenuSystem system, MenuIndex previousIndex)
+        public void Enter(MenuIndex previousIndex)
         {
             transform.gameObject.SetActive(true);
             transitionStep = 0;
             animTime = 0f;
         }
 
-        public void Exit(MenuSystem system, MenuIndex nextIndex)
+        public void Exit(MenuIndex nextIndex)
         {
             transform.gameObject.SetActive(false);
             ref Button titleBtn = ref buttons[(int)Buttons.Title];
@@ -189,9 +190,9 @@ public class MenuSystem : MonoBehaviour
             pressStartBtn.text.color = new Color(1f, 1f, 1f, 0f);
         }
 
-        public void Update(MenuSystem system, float deltaTime)
+        public void Update(float deltaTime)
         {
-            KeyIndex keyIndex = system.ProcessInputs();
+            KeyIndex keyIndex = ProcessInputs();
 
             const float kPressStartAnimSpeed = 1.5f;
 
@@ -236,9 +237,9 @@ public class MenuSystem : MonoBehaviour
                 pressStartBtn.text.color = new Color(1f, 1f, 1f, alpha);
             }
 
-            if (system.IsSubmitKey())
+            if (IsSubmitKey())
             {
-                system.DoMenuTransition(MenuIndex.Game);
+                DoMenuTransition(MenuIndex.Game);
             }
         }
     }
@@ -262,7 +263,7 @@ public class MenuSystem : MonoBehaviour
         int selectedIndex;
         private Buttons[][] keyMap;
 
-        public void Init(MenuSystem system, Transform transform)
+        public void Init(Transform transform)
         {
             this.transform = transform;
 
@@ -286,20 +287,20 @@ public class MenuSystem : MonoBehaviour
             transform.gameObject.SetActive(false);
         }
 
-        public void Enter(MenuSystem system, MenuIndex previousIndex)
+        public void Enter(MenuIndex previousIndex)
         {
             transform.gameObject.SetActive(true);
             selectedIndex = (int)Buttons.NewGame;
         }
 
-        public void Exit(MenuSystem system, MenuIndex nextIndex)
+        public void Exit(MenuIndex nextIndex)
         {
             transform.gameObject.SetActive(false);
         }
 
-        public void Update(MenuSystem system, float deltaTime)
+        public void Update(float deltaTime)
         {
-            KeyIndex keyIndex = system.ProcessInputs();
+            KeyIndex keyIndex = ProcessInputs();
 
             if (keyIndex != KeyIndex.None)
             {
@@ -309,13 +310,13 @@ public class MenuSystem : MonoBehaviour
 
             selectedIndex = UpdateButtonAnimations(buttons, selectedIndex);
 
-            if (system.IsSubmitted(buttons, (int)Buttons.NewGame, selectedIndex))
+            if (IsSubmitted(buttons, (int)Buttons.NewGame, selectedIndex))
             {
-                system.DoMenuTransition(MenuIndex.InGame);
-                system.DoLevelTransition("L1-Field");
+                DoMenuTransition(MenuIndex.InGame);
+                DoLevelTransition("L1-Field");
             }
-            else if (system.IsSubmitted(buttons, (int)Buttons.Back, selectedIndex) || system.IsCancelKey())
-                system.DoMenuTransition(MenuIndex.Title);
+            else if (IsSubmitted(buttons, (int)Buttons.Back, selectedIndex) || IsCancelKey())
+                DoMenuTransition(MenuIndex.Title);
         }
     }
 
@@ -333,7 +334,7 @@ public class MenuSystem : MonoBehaviour
 
         Image escapeIcon;
 
-        public void Init(MenuSystem system, Transform transform)
+        public void Init(Transform transform)
         {
             this.transform = transform;
             hpTitle = transform.Find("HP")?.GetComponent<TMP_Text>();
@@ -348,17 +349,17 @@ public class MenuSystem : MonoBehaviour
             transform.gameObject.SetActive(false);
         }
 
-        public void Enter(MenuSystem system, MenuIndex previousIndex)
+        public void Enter(MenuIndex previousIndex)
         {
             transform.gameObject.SetActive(true);
         }
 
-        public void Exit(MenuSystem system, MenuIndex nextIndex)
+        public void Exit(MenuIndex nextIndex)
         {
             transform.gameObject.SetActive(false);
         }
 
-        public void Update(MenuSystem system, float deltaTime)
+        public void Update(float deltaTime)
         {
             Creature mainChar = Game.FindDogeKnight();
             if (mainChar != null)
@@ -372,12 +373,12 @@ public class MenuSystem : MonoBehaviour
                 mpValue.text = "0 / 0";
             }
 
-            KeyIndex keyIndex = system.ProcessInputs();
+            KeyIndex keyIndex = ProcessInputs();
 
             if (UIEventHandler.IsMouseOrTouchActive() && UIEventHandler.IsClicked(escapeIcon) // mouse or touch
-             || system.IsCancelKey()) // gamepad, keyboard
+             || IsCancelKey()) // gamepad, keyboard
             {
-                system.DoMenuTransition(MenuIndex.Pause);
+                DoMenuTransition(MenuIndex.Pause);
                 Game.TransitionPause(true);
             }
         }
@@ -401,7 +402,7 @@ public class MenuSystem : MonoBehaviour
         private Buttons[][] keyMap;
 
 
-        public void Init(MenuSystem system, Transform transform)
+        public void Init(Transform transform)
         {
             this.transform = transform;
 
@@ -420,20 +421,20 @@ public class MenuSystem : MonoBehaviour
             transform.gameObject.SetActive(false);
         }
 
-        public void Enter(MenuSystem system, MenuIndex previousIndex)
+        public void Enter(MenuIndex previousIndex)
         {
             transform.gameObject.SetActive(true);
             selectedIndex = (int)Buttons.Resume;
         }
 
-        public void Exit(MenuSystem system, MenuIndex nextIndex)
+        public void Exit(MenuIndex nextIndex)
         {
             transform.gameObject.SetActive(false);
         }
 
-        public void Update(MenuSystem system, float deltaTime)
+        public void Update(float deltaTime)
         {
-            KeyIndex keyIndex = system.ProcessInputs();
+            KeyIndex keyIndex = ProcessInputs();
 
             if (keyIndex != KeyIndex.None)
             {
@@ -443,15 +444,15 @@ public class MenuSystem : MonoBehaviour
 
             selectedIndex = UpdateButtonAnimations(buttons, selectedIndex);
 
-            if (system.IsSubmitted(buttons, (int)Buttons.Resume, selectedIndex) || system.IsCancelKey())
+            if (IsSubmitted(buttons, (int)Buttons.Resume, selectedIndex) || IsCancelKey())
             {
-                system.DoMenuTransition(MenuIndex.InGame);
+                DoMenuTransition(MenuIndex.InGame);
                 Game.TransitionPause(false);
             }
-            else if (system.IsSubmitted(buttons, (int)Buttons.Exit, selectedIndex))
+            else if (IsSubmitted(buttons, (int)Buttons.Exit, selectedIndex))
             {
-                system.DoMenuTransition(MenuIndex.Title);
-                system.DoLevelTransition("L0-StartScreen");
+                DoMenuTransition(MenuIndex.Title);
+                DoLevelTransition("L0-StartScreen");
                 Game.TransitionPause(false);
             }
         }
@@ -475,7 +476,7 @@ public class MenuSystem : MonoBehaviour
         private Buttons[][] keyMap;
 
 
-        public void Init(MenuSystem system, Transform transform)
+        public void Init(Transform transform)
         {
             this.transform = transform;
 
@@ -494,20 +495,20 @@ public class MenuSystem : MonoBehaviour
             transform.gameObject.SetActive(false);
         }
 
-        public void Enter(MenuSystem system, MenuIndex previousIndex)
+        public void Enter(MenuIndex previousIndex)
         {
             transform.gameObject.SetActive(true);
             selectedIndex = (int)Buttons.Retry;
         }
 
-        public void Exit(MenuSystem system, MenuIndex nextIndex)
+        public void Exit(MenuIndex nextIndex)
         {
             transform.gameObject.SetActive(false);
         }
 
-        public void Update(MenuSystem system, float deltaTime)
+        public void Update(float deltaTime)
         {
-            KeyIndex keyIndex = system.ProcessInputs();
+            KeyIndex keyIndex = ProcessInputs();
 
             if (keyIndex != KeyIndex.None)
             {
@@ -517,15 +518,15 @@ public class MenuSystem : MonoBehaviour
 
             selectedIndex = UpdateButtonAnimations(buttons, selectedIndex);
 
-            if (system.IsSubmitted(buttons, (int)Buttons.Retry, selectedIndex))
+            if (IsSubmitted(buttons, (int)Buttons.Retry, selectedIndex))
             {
-                system.DoMenuTransition(MenuIndex.InGame);
+                DoMenuTransition(MenuIndex.InGame);
                 Game.TransitionPause(false);
             }
-            else if (system.IsSubmitted(buttons, (int)Buttons.Exit, selectedIndex))
+            else if (IsSubmitted(buttons, (int)Buttons.Exit, selectedIndex))
             {
-                system.DoMenuTransition(MenuIndex.Title);
-                system.DoLevelTransition("L0-StartScreen");
+                DoMenuTransition(MenuIndex.Title);
+                DoLevelTransition("L0-StartScreen");
                 Game.TransitionPause(false);
             }
         }
@@ -536,22 +537,23 @@ public class MenuSystem : MonoBehaviour
     // Only 1 instance by design.
     public static MenuSystem s_Instance;
 
-    private MenuIndex menuIndex;
-    private float keyDelay;
-    private bool submitKeyUp;
-    private bool cancelKeyUp;
+    private static MenuIndex menuIndex;
+    private static float keyDelay;
+    private static bool submitKeyUp;
+    private static bool cancelKeyUp;
 
     /// Fade screen to black when transitioning between levels.
-    private Image fadeScreen;
-    private FadeScreenAnim fadeScreenAnim;
-    private float fadeScreenAnimTime;
+    private static Image fadeScreen;
+    private static FadeScreenAnim fadeScreenAnim;
+    private static float fadeScreenAnimTime;
 
-    private IMenu[] menus = new IMenu[(int)MenuIndex.Count];
+    private static IMenu[] menus = new IMenu[(int)MenuIndex.Count];
 
     //_____________________________________________________________________________________________
 
     void Awake()
     {
+        Assert.IsTrue(s_Instance == null);
         s_Instance = this;
 
         menuIndex = MenuIndex.Empty;
@@ -583,39 +585,39 @@ public class MenuSystem : MonoBehaviour
         // Update fade screen (if any).
         UpdateFadeScreen();
 
-        menus[(int)menuIndex].Update(this, Time.unscaledDeltaTime);
+        menus[(int)menuIndex].Update(Time.unscaledDeltaTime);
     }
 
-    public void DoMenuTransition(MenuIndex nextIndex)
+    public static void DoMenuTransition(MenuIndex nextIndex)
     {
-        menus[(int)menuIndex].Exit(this, nextIndex);
-        menus[(int)nextIndex].Enter(this, menuIndex);
+        menus[(int)menuIndex].Exit(nextIndex);
+        menus[(int)nextIndex].Enter(menuIndex);
         menuIndex = nextIndex;
     }
 
-    public void DoLevelTransition(string sceneName)
+    public static void DoLevelTransition(string sceneName)
     {
-        StartCoroutine(SwitchLevelCoroutine(sceneName));
+        s_Instance.StartCoroutine(SwitchLevelCoroutine(sceneName));
     }
 
-    public void BeginScreenFadeOut()
+    public static void BeginScreenFadeOut()
     {
         fadeScreenAnim = FadeScreenAnim.TransitionOut;
         fadeScreenAnimTime = 0f;
     }
 
-    public void BeginScreenFadeIn()
+    public static void BeginScreenFadeIn()
     {
         fadeScreenAnim = FadeScreenAnim.TransitionIn;
         fadeScreenAnimTime = 0f;
     }
 
-    public bool IsScreenFading()
+    public static bool IsScreenFading()
     {
         return fadeScreenAnim != FadeScreenAnim.None;
     }
 
-    public void SetScreenFaded(bool faded)
+    public static void SetScreenFaded(bool faded)
     {
         fadeScreenAnim = FadeScreenAnim.None;
         fadeScreenAnimTime = 0f;
@@ -641,7 +643,7 @@ public class MenuSystem : MonoBehaviour
             default: return null;
         }
 
-        menu.Init(this, t);
+        menu.Init(t);
         return menu;
     }
 
@@ -657,7 +659,7 @@ public class MenuSystem : MonoBehaviour
         };
     }
 
-    private KeyIndex ProcessInputs()
+    private static KeyIndex ProcessInputs()
     {
         // Mainly processing gamepad, keyboard input and mouse click 0.
 
@@ -708,17 +710,17 @@ public class MenuSystem : MonoBehaviour
         return KeyIndex.None;
     }
 
-    private bool IsSubmitKey()
+    private static bool IsSubmitKey()
     {
         return submitKeyUp;
     }
 
-    private bool IsCancelKey()
+    private static bool IsCancelKey()
     {
         return cancelKeyUp;
     }
 
-    private bool IsSubmitted(Button[] btns, int index, int selIndex)
+    private static bool IsSubmitted(Button[] btns, int index, int selIndex)
     {
         if (UIEventHandler.IsMouseOrTouchActive() && UIEventHandler.IsClicked(btns[index].text)) // Mouse or touch
             return true;
@@ -727,7 +729,7 @@ public class MenuSystem : MonoBehaviour
         return false;
     }
 
-    private void UpdateFadeScreen()
+    private static void UpdateFadeScreen()
     {
         const float kFadeScreenAnimSpeed = 1.5f;
         float deltaTime = Time.unscaledDeltaTime;
@@ -800,7 +802,7 @@ public class MenuSystem : MonoBehaviour
     }
 
     /// Unload current active level and load another one.
-    private IEnumerator SwitchLevelCoroutine(string sceneName)
+    private static IEnumerator SwitchLevelCoroutine(string sceneName)
     {
         // Fade-in to black screen.
         BeginScreenFadeOut();
