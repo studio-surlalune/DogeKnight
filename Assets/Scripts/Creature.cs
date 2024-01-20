@@ -4,6 +4,27 @@ using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
 using UnityEngine.Assertions;
 
+public struct CreatureEvent
+{
+    public enum Type
+    {
+        Attack,
+    }
+
+    public Creature source;
+    public Creature target;
+    public Type type;
+    public int value;
+
+    public CreatureEvent(Creature source, Creature target, Type type, int value)
+    {
+        this.source = source;
+        this.target = target;
+        this.type = type;
+        this.value = value;
+    }
+}
+
 public struct CreatureStats
 {
     public int hp;
@@ -21,10 +42,10 @@ public struct CreatureStats
     {
         switch(type)
         {
-            case Creature.Type.DogeKnight:  return new CreatureStats { hp=100, mp=10, atk=10, def=10, spd=10, luck=10, exp=0, level=1, hpMax=100, mpMax=10 };
-            case Creature.Type.Slime:       return new CreatureStats { hp= 10, mp= 0, atk= 2, def= 2, spd= 4, luck=10, exp=0, level=1, hpMax= 10, mpMax= 0 };
-            case Creature.Type.Turtle:      return new CreatureStats { hp= 15, mp= 0, atk= 2, def= 4, spd= 2, luck=10, exp=0, level=1, hpMax= 15, mpMax= 0 };
-            case Creature.Type.Skeleton:    return new CreatureStats { hp= 15, mp= 0, atk= 5, def= 2, spd= 4, luck=10, exp=0, level=1, hpMax= 10, mpMax= 0 };
+            case Creature.Type.DogeKnight:  return new CreatureStats { hp=100, mp=10, atk=10, def=10, spd=20, luck=10, exp=0, level=1, hpMax=100, mpMax=10 };
+            case Creature.Type.Slime:       return new CreatureStats { hp= 10, mp= 0, atk= 2, def= 2, spd= 8, luck=10, exp=0, level=1, hpMax= 10, mpMax= 0 };
+            case Creature.Type.Turtle:      return new CreatureStats { hp= 15, mp= 0, atk= 2, def= 4, spd= 4, luck=10, exp=0, level=1, hpMax= 15, mpMax= 0 };
+            case Creature.Type.Skeleton:    return new CreatureStats { hp= 15, mp= 0, atk= 5, def= 2, spd=12, luck=10, exp=0, level=1, hpMax= 10, mpMax= 0 };
             default:
                 Assert.IsTrue(false);
                 return new CreatureStats();
@@ -54,6 +75,13 @@ public class Creature
     public Type type;
     public bool isNPC;
 
+    /// </summary>
+    /// List of events that the creature received during the Update phase
+    /// and must deal with during the LateUpdate phase.
+    /// </summary>
+    public List<CreatureEvent> receivedEvents;
+    
+
     public Creature(Type type, bool isNPC, GameObject gameObject)
     {
         stats = CreatureStats.Instanciate(type);
@@ -62,10 +90,22 @@ public class Creature
         this.animator = gameObject.GetComponent<Animator>();
         this.type = type;
         this.isNPC = isNPC;
+
+        receivedEvents = new List<CreatureEvent>();
     }
 
-    // make Update method an abstract method
+    /// <summary>
+    /// Update creature own actions.
+    /// </summary>
+    /// <param name="creatures"></param>
     public virtual void Update(List<Creature> creatures)
+    {}
+
+    /// <summary>
+    /// Update creature reactions from the environment.
+    /// </summary>
+    /// <param name="creatures"></param>
+    public virtual void LateUpdate(List<Creature> creatures)
     {}
 
     public static Creature FindClosestCreature(Creature self, List<Creature> creatures, bool isNPC, out float dist)
@@ -101,11 +141,35 @@ public class DogeKnight : Creature
     public override void Update(List<Creature> creatures)
     {}
 
+    public override void LateUpdate(List<Creature> creatures)
+    {
+        foreach (CreatureEvent ev in receivedEvents)
+        {
+            if (ev.type == CreatureEvent.Type.Attack)
+            {
+                stats.hp -= ev.value;
+                if (stats.hp <= 0)
+                {
+                    stats.hp = 0;
+                    animator.SetTrigger("TriggerFatalHit");
+                }
+                else
+                {
+                    animator.SetTrigger("TriggerHit");
+                }
+            }
+        }
+        receivedEvents.Clear();
+    }
+
 }
 
 
 public class Slime : Creature
 {
+    private float attackTriggerCooldown;
+    private int attackConsecutiveCount;
+
     public Slime(Type type, bool isNPC, GameObject gameObject) : base(type, isNPC, gameObject)
     {}
 
@@ -113,9 +177,9 @@ public class Slime : Creature
     {
         const float kAwarenessDistance = 8f;
         const float kChargeDistance = 5f;
-        const float kAttackDistance = 1.5f;
+        const float kAttackDistance = 1.9f;
 
-        // Find the closest creature.
+        // Find thssaaae closest creature.
         float closestDistance;
         Creature closestCreature = Creature.FindClosestCreature(this, creatures, false, out closestDistance);
 
@@ -123,7 +187,7 @@ public class Slime : Creature
         if (closestDistance > kAwarenessDistance)
             return;
 
-        // Abnormal condition: do nothing to avoid null maths?        
+        // Abnormal condition: do nothing to avoid incorrect maths?        
         if (closestDistance < 0.01f)
             return;
 
@@ -139,7 +203,7 @@ public class Slime : Creature
         directionWS.Normalize();
 
         // Move towards the closest creature.
-        if (closestDistance > kAttackDistance && closestDistance <= kChargeDistance)
+        if (closestDistance > kAttackDistance * 0.5f && closestDistance <= kChargeDistance)
             translationWS = directionWS * motionSpeed * deltaTime;
 
         if (closestDistance <= kAwarenessDistance)
@@ -148,15 +212,55 @@ public class Slime : Creature
             rotation = Quaternion.Lerp(rotation, newRotation, rotationSpeed * deltaTime);
         }
 
+        // Update trigger status.
+        AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+        bool attackInProgress = stateInfo.IsName("Attack01") || stateInfo.IsName("Attack02");
+        if (attackTriggerCooldown > 0f)
+        {
+            attackTriggerCooldown -= deltaTime;
+            if (attackInProgress)
+                attackTriggerCooldown = 0f;
+        }
+
+        // Decide new trigger status.            
+        int doAttack = 0;
         if (closestDistance <= kAttackDistance)
-            animator.SetTrigger("Attack");
-        
+        {
+            if (attackTriggerCooldown <= 0f && !attackInProgress)
+            {
+                attackTriggerCooldown = 1f;
+                ++attackConsecutiveCount;
+                doAttack = attackConsecutiveCount < 3 ? 1 : 2;
+                attackConsecutiveCount %= 3;
+
+                int attackDamage = doAttack == 1 ? stats.atk : stats.atk*2;
+                closestCreature.receivedEvents.Add(
+                    new CreatureEvent(this, closestCreature, CreatureEvent.Type.Attack, attackDamage)
+                );
+            }
+        }
+        else
+        {
+            attackTriggerCooldown = 1f;
+            attackConsecutiveCount = 0;
+        }
+
         // Apply movements.
         transform.Translate(translationWS, Space.World);
         transform.rotation = rotation;
 
+        if (doAttack == 1)
+            animator.SetTrigger("Attack0");
+        else if (doAttack == 2)
+            animator.SetTrigger("Attack1");
+        
         // Apply animations.
         animator.SetBool("EnemyNearby", closestDistance <= kAwarenessDistance);
         animator.SetBool("IsWalking", closestDistance > kAttackDistance && closestDistance <= kChargeDistance);
+    }
+
+    public override void LateUpdate(List<Creature> creatures)
+    {
+        receivedEvents.Clear();
     }
 }

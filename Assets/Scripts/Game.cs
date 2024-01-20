@@ -29,6 +29,11 @@ public class Game : MonoBehaviour
         UpdateGame();
     }
 
+    void LateUpdate()
+    {
+        LateUpdateGame();
+    }
+
     /// Create a new game instance.
     public static void NewGame()
     {
@@ -79,7 +84,17 @@ public class Game : MonoBehaviour
         if (isPaused)
             return;
         
-        UpdateCreatures();
+        foreach (Creature creature in creatures)
+            creature.Update(creatures);
+    }
+
+    private static void LateUpdateGame()
+    {
+        if (isPaused)
+            return;
+        
+        foreach (Creature creature in creatures)
+            creature.LateUpdate(creatures);
     }
 
     private static void UpdatePauseAnimation()
@@ -95,12 +110,6 @@ public class Game : MonoBehaviour
                 Time.timeScale = s;
             }
         }
-    }
-
-    private static void UpdateCreatures()
-    {
-        foreach (Creature creature in creatures)
-            creature.Update(creatures);
     }
 
     private static void UpdateCreature(Creature creature)
