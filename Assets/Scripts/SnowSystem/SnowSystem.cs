@@ -26,10 +26,16 @@ public class SnowSystem : MonoBehaviour
     private int systemId;
     private CommandBuffer commandBuffer;
     private ComputeBuffer instanceBuffer;
-    public int maxInstanceCount = 1024*8;
+    // Optimize physics raycast for snowkflakes:
+    // For each individual snowflake, skip raycasting frames if there is no collision in the vicinity.
+    // Increase this value if raycast becomes expensive as long as flakes do not miss collisions.
+    public int maxRaycastFrequency = 4;
+    public int maxInstanceCount = 1024*16;
     public float flakePerSecond = 900.0f;
     // A flake fall speed multiplier.
     public float flakeSpeed = 0.5f;
+    // How long a flake will take to disappear after collision (in seconds).
+    public float flakeExtinctTime = 10.0f;
     // Flakes are spawn above the target at a specific height.
     private float ceilingRelativeToTarget = 7.0f;
     // Flakes are always killed if they reach this world space height.
@@ -75,6 +81,11 @@ public class SnowSystem : MonoBehaviour
         public Vector3 velWS;
         public float extinctLife;
         public int raycastResultIndex;
+        // Optimisation: raycast less often if the no colliders are found in the vicinity
+        // 1: every frame, 2: every other frame, 3: every third frame, etc.
+        public byte raycastFrequency;
+        // How many frames have been skipped for raycasting.
+        public byte raycastFrameCounter;
 
         public bool isAlive { get { return radius > 0.0f; } }
         public bool isExtinct { get { return extinctLife > 0.0f; } }
@@ -159,7 +170,7 @@ public class SnowSystem : MonoBehaviour
         JobHandle handleSpawnFlakes = MakeSpawnFlakeJob(deltaTime);
         // Must sync because next task PrepareFlakeRaycastJob=>RaycastCommand.Schedule() cannot be called from worker thread :/
         handleSpawnFlakes.Complete();
-        JobHandle handlePrepareRaycasts = MakeFlakeRaycastJob(deltaTime, handleSpawnFlakes);
+        JobHandle handlePrepareRaycasts = MakeRaycastFlakeJob(deltaTime, handleSpawnFlakes);
         JobHandle handleUpdateFlakes = MakeUpdateFlakeJob(deltaTime, handlePrepareRaycasts);
         JobHandle handleClearFlakes = MakeClearFlakeJob(handleUpdateFlakes);
     
@@ -318,6 +329,8 @@ public class SnowSystem : MonoBehaviour
         flake.velWS = velWS;
         flake.extinctLife = -1.0f; // <=0 means it is not extincting
         flake.raycastResultIndex = -1;
+        flake.raycastFrequency = 1;
+        flake.raycastFrameCounter = 0;
         return flake;
     }
 
@@ -346,23 +359,31 @@ public class SnowSystem : MonoBehaviour
 
             if (!flake.isExtinct)
             {
+                if (flake.posWS.y < absoluteFloor)
+                {
+                    flake.extinctLife = -1f;
+                    flake.radius = -1.0f; // kill the flake
+                    continue;
+                }
+
+                if (flake.raycastResultIndex >= 0)
+                {
+                    if (raycastResults[ flake.raycastResultIndex ].distance > 0)
+                    {
+                        // Adjust the flake position just above the collided surface.
+                        flake.posWS = raycastResults[ flake.raycastResultIndex ].point;
+                        flake.posWS.y += flake.radius * 0.6f; // tweaked for the snow alpha texture...
+                        flake.extinctLife = random.NextFloat(flakeExtinctTime * 0.75f, flakeExtinctTime);
+                        continue;
+                    }
+                    else
+                        flake.raycastFrequency = (byte)Math.Min(flake.raycastFrequency + 1, maxRaycastFrequency);
+                }
+
                 // Add turbulence to the flake motion
                 Vector3 t = SampleTurbulence(flake.posWS);
 
                 flake.posWS += deltaTime * (flake.velWS + t * turbulenceStrength);
-
-                if (flake.posWS.y < absoluteFloor)
-                {
-                    flake.extinctLife = random.NextFloat(2.5f, 5.0f);
-                    continue;
-                }
-
-                float velLength = flake.velWS.magnitude;
-                if (raycastResults[ flake.raycastResultIndex ].distance > 0)
-                {
-                    flake.extinctLife = random.NextFloat(1.5f, 3.0f);
-                    continue;
-                }
             }
             else
             {
@@ -400,7 +421,7 @@ public class SnowSystem : MonoBehaviour
         return job.Schedule();
     }
 
-    private JobHandle MakeFlakeRaycastJob(float deltaTime, JobHandle dependency)
+    private JobHandle MakeRaycastFlakeJob(float deltaTime, JobHandle dependency)
     {
         int raycastCount = 0;
         int instanceCount = (int)instanceCountf;
@@ -415,13 +436,24 @@ public class SnowSystem : MonoBehaviour
 
             if (flake.isAlive && !flake.isExtinct)
             {
-                float velLength = flake.velWS.magnitude;
-                Vector3 n = flake.velWS / velLength; // Bug UUM-41893" we shouldn't need to normalize
-                // *1.5 to make it less likely to miss collision with terrain
-                #pragma warning disable 0618
-                queries[raycastCount] = new RaycastCommand(flake.posWS, n, velLength * 1.5f * deltaTime);
-                #pragma warning restore 0618
-                flake.raycastResultIndex = raycastCount++;
+                if (++flake.raycastFrameCounter >= flake.raycastFrequency)
+                {
+                    float velLength = flake.velWS.magnitude;
+                    Vector3 n = flake.velWS / velLength; // Bug UUM-41893" we shouldn't need to normalize
+
+                    // *1.5 to make it less likely to miss collision with terrain
+                    // Make longer raycast length when the frequency is high, because we won't
+                    // raycast every frame.
+                    float raycastLengthFactor = 1.0f * flake.raycastFrequency;
+
+                    #pragma warning disable 0618
+                    queries[raycastCount] = new RaycastCommand(flake.posWS, n, velLength * raycastLengthFactor * deltaTime);
+                    #pragma warning restore 0618
+                    flake.raycastResultIndex = raycastCount++;
+                    flake.raycastFrameCounter = 0;
+                }
+                else
+                    flake.raycastResultIndex = -1;
             }
             float ppp = flake.posWS.y;
         }

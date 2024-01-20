@@ -1863,9 +1863,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   trackingTarget: {fileID: 59407159}
   snowMat: {fileID: 2100000, guid: a6867da46746e504eb5c3941c65bad3d, type: 2}
+  maxRaycastFrequency: 4
   maxInstanceCount: 8192
   flakePerSecond: 900
   flakeSpeed: 0.5
+  flakeExtinctTime: 10
   absoluteFloor: 0
   spawnBoxExtent: 15
 --- !u!114 &963194233
@@ -3251,7 +3253,7 @@ BoxCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1662612862}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: 837c6896d762f44d490c20359d6cde9a, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
