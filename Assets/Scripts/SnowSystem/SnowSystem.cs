@@ -16,12 +16,14 @@ using System.Runtime.CompilerServices;
 [RequireComponent(typeof(Camera))]
 public class SnowSystem : MonoBehaviour
 {
+    private static int s_SystemCounter = 0;
     public GameObject trackingTarget;
     public Material snowMat;
 
     // This singleton is needed to circumvent IJob limitations.
-    private static SnowSystem s_Instance;
+    private static List<SnowSystem> s_Instances = new List<SnowSystem>();
 
+    private int systemId;
     private CommandBuffer commandBuffer;
     private ComputeBuffer instanceBuffer;
     public int maxInstanceCount = 1024*8;
@@ -97,7 +99,8 @@ public class SnowSystem : MonoBehaviour
             return;
         #endif
         
-        s_Instance = this;
+        systemId = s_SystemCounter++;
+        s_Instances.Add(this);
 
         flakeRadiusRangeInv = 1.0f / (flakeMaxRadius - flakeMinRadius);
         turbulenceStride = turbulenceWidth * turbulenceHeight;
@@ -124,6 +127,8 @@ public class SnowSystem : MonoBehaviour
         if (GetComponent<Camera>()?.gameObject.scene.name == null)
             return;
         #endif
+
+        s_Instances.Remove(this);
 
         if (commandBuffer != null)
         {
@@ -186,10 +191,18 @@ public class SnowSystem : MonoBehaviour
         #if UNITY_EDITOR
         // Scene camera render the main camera snow!!!
         if (GetComponent<Camera>()?.gameObject.scene.name == null)
-            instance = s_Instance;
+            instance = s_Instances[0]; // assume the first instance is the main camera, maybe we should render all snow systems instead?
         #endif
 
         instance.RenderSnow();
+    }
+
+    public static SnowSystem FindSystemById(int id)
+    {
+        foreach (SnowSystem system in s_Instances)
+            if (system.systemId == id)
+                return system;
+        return null;
     }
 
     private void RenderSnow()
@@ -381,6 +394,7 @@ public class SnowSystem : MonoBehaviour
     private JobHandle MakeSpawnFlakeJob(float deltaTime)
     {
         SpawnFlakeJob job = new SpawnFlakeJob();
+        job.systemId = systemId;
         job.deltaTime = deltaTime;
         job.posWS = trackingTarget.transform.localToWorldMatrix.GetColumn(3);
         return job.Schedule();
@@ -431,6 +445,7 @@ public class SnowSystem : MonoBehaviour
         for (int i = 0, j = 0; i < instanceCount; i += kJobGranularity)
         {
             UpdateFlakeJob job = new UpdateFlakeJob();
+            job.systemId = systemId;
             job.deltaTime = deltaTime;
             job.beginInstance = i;
             job.endInstance = Math.Min(i + kJobGranularity, instanceCount);
@@ -445,22 +460,26 @@ public class SnowSystem : MonoBehaviour
     private JobHandle MakeClearFlakeJob(JobHandle dependency)
     {
         ClearFlakeJob job = new ClearFlakeJob();
+        job.systemId = systemId;
         return job.Schedule(dependency);
     }
 
     public struct SpawnFlakeJob : IJob
     {
+        public int systemId;
         public float deltaTime;
         public Vector3 posWS;
 
         public void Execute()
         {
-            SnowSystem.s_Instance.SpawnFlakes(deltaTime, posWS);
+            SnowSystem system = SnowSystem.FindSystemById(systemId);
+            system.SpawnFlakes(deltaTime, posWS);
         }
     }
 
     public struct UpdateFlakeJob : IJob
     {
+        public int systemId;
         public float deltaTime;
         public int beginInstance;
         public int endInstance;
@@ -468,15 +487,19 @@ public class SnowSystem : MonoBehaviour
 
         public void Execute()
         {
-            SnowSystem.s_Instance.UpdateFlakes(deltaTime, beginInstance, endInstance, raycastResults);
+            SnowSystem system = SnowSystem.FindSystemById(systemId);
+            system.UpdateFlakes(deltaTime, beginInstance, endInstance, raycastResults);
         }
     }
 
     public struct ClearFlakeJob : IJob
     {
+        public int systemId;
+
         public void Execute()
         {
-            SnowSystem.s_Instance.ClearFlakes();
+            SnowSystem system = SnowSystem.FindSystemById(systemId);
+            system.ClearFlakes();
         }
     }
 
