@@ -39,7 +39,7 @@ public class DevHud : MonoBehaviour
 
     //private Image logBox;
     private Text logText;
-    private string[] logLines = new string[128];
+    private string[] logLines;
 
     private FrameTiming[] timings = new FrameTiming[1];
 
@@ -120,6 +120,9 @@ public class DevHud : MonoBehaviour
         logText.rectTransform.sizeDelta = new Vector2(anchorLogDims.x - 10 - 10, anchorLogDims.y - 10 - 10);
         logText.horizontalOverflow = HorizontalWrapMode.Overflow;
         logText.alignment = (layout == Layout.TopLeft ? TextAnchor.LowerLeft : TextAnchor.LowerLeft);
+
+        int lineCapacity = (int)(logText.rectTransform.rect.height / logText.fontSize);
+        logLines = new string[lineCapacity];
     }
 
     void Update()
