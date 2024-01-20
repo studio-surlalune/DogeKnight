@@ -4,9 +4,10 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Assertions;
 
+// This is instantiated once by the UI scene by the GameCallback gameobject in that scene.
 public class Game : MonoBehaviour
 {
-    public static List<Creature> creatures = new List<Creature>();
+    public static List<Creature> creatures;
 
     private static Game s_Instance;
     private static bool isPaused;
@@ -37,7 +38,13 @@ public class Game : MonoBehaviour
     /// Create a new game instance.
     public static void NewGame()
     {
+        creatures = new List<Creature>();
+    }
+
+    public static void EndGame()
+    {
         creatures.Clear();
+        creatures = null;
     }
 
     /// Set the game to pause/unpause state (with animation).
@@ -84,6 +91,10 @@ public class Game : MonoBehaviour
         if (isPaused)
             return;
         
+        // NewGame() has not been called.
+        if (creatures == null)
+            return;
+        
         foreach (Creature creature in creatures)
             creature.Update(creatures);
     }
@@ -91,6 +102,10 @@ public class Game : MonoBehaviour
     private static void LateUpdateGame()
     {
         if (isPaused)
+            return;
+        
+        // NewGame() has not been called.
+        if (creatures == null)
             return;
         
         foreach (Creature creature in creatures)

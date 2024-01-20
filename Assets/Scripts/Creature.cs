@@ -152,6 +152,10 @@ public class DogeKnight : Creature
                 {
                     stats.hp = 0;
                     animator.SetTrigger("TriggerFatalHit");
+
+                    MenuSystem.DoMenuTransition(MenuSystem.MenuIndex.GameOver);
+                    Game.TransitionPause(true);
+
                 }
                 else
                 {

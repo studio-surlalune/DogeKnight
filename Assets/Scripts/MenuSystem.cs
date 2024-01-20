@@ -312,6 +312,7 @@ public class MenuSystem : MonoBehaviour
 
             if (IsSubmitted(buttons, (int)Buttons.NewGame, selectedIndex))
             {
+                Game.NewGame();
                 DoMenuTransition(MenuIndex.InGame);
                 DoLevelTransition("L1-Field");
             }
@@ -451,6 +452,7 @@ public class MenuSystem : MonoBehaviour
             }
             else if (IsSubmitted(buttons, (int)Buttons.Exit, selectedIndex))
             {
+                Game.EndGame();
                 DoMenuTransition(MenuIndex.Title);
                 DoLevelTransition("L0-StartScreen");
                 Game.TransitionPause(false);
@@ -520,14 +522,19 @@ public class MenuSystem : MonoBehaviour
 
             if (IsSubmitted(buttons, (int)Buttons.Retry, selectedIndex))
             {
-                DoMenuTransition(MenuIndex.InGame);
+                // We don't have save point, so just restart the game for now.
                 Game.TransitionPause(false);
+                Game.EndGame();
+                Game.NewGame();
+                DoMenuTransition(MenuIndex.InGame);
+                DoLevelTransition("L1-Field");
             }
             else if (IsSubmitted(buttons, (int)Buttons.Exit, selectedIndex))
             {
+                Game.TransitionPause(false);
+                Game.EndGame();
                 DoMenuTransition(MenuIndex.Title);
                 DoLevelTransition("L0-StartScreen");
-                Game.TransitionPause(false);
             }
         }
     }
@@ -572,7 +579,7 @@ public class MenuSystem : MonoBehaviour
         menus[(int)MenuIndex.Game] = FindMenu(MenuIndex.Game, "MenuGame");
         menus[(int)MenuIndex.InGame] = FindMenu(MenuIndex.InGame, "MenuInGame");
         menus[(int)MenuIndex.Pause] = FindMenu(MenuIndex.Pause, "MenuPause");
-        menus[(int)MenuIndex.GameOver] = FindMenu(MenuIndex.Pause, "MenuGameOver");
+        menus[(int)MenuIndex.GameOver] = FindMenu(MenuIndex.GameOver, "MenuGameOver");
 
         // Initial menu states.
         foreach (IMenu m in menus)
@@ -640,7 +647,8 @@ public class MenuSystem : MonoBehaviour
             case MenuIndex.Game: menu = new GameMenu(); break;
             case MenuIndex.InGame: menu = new InGameMenu(); break;
             case MenuIndex.Pause: menu = new PauseMenu(); break;
-            default: return null;
+            case MenuIndex.GameOver: menu = new GameOverMenu(); break;
+            default: Assert.IsTrue(false); return null;
         }
 
         menu.Init(t);
