@@ -1,66 +1,8 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Assertions;
-
-public struct CreatureStats
-{
-    public int hp;
-    public int mp;
-    public int atk;
-    public int def;
-    public int spd;
-    public int luck;
-    public int exp;
-    public int level;
-    public int hpMax;
-    public int mpMax;
-
-    public static CreatureStats Instanciate(Creature.Type type)
-    {
-        switch(type)
-        {
-            case Creature.Type.DogeKnight:  return new CreatureStats { hp=100, mp=10, atk=10, def=10, spd=10, luck=10, exp=0, level=1, hpMax=100, mpMax=10 };
-            case Creature.Type.Slime:       return new CreatureStats { hp=10, mp=0, atk=2, def=2, spd=4, luck=10, exp=0, level=1, hpMax=10, mpMax=0 };
-            case Creature.Type.Turtle:      return new CreatureStats { hp=15, mp=0, atk=2, def=4, spd=2, luck=10, exp=0, level=1, hpMax=15, mpMax=0 };
-            case Creature.Type.Skeleton:    return new CreatureStats { hp=15, mp=0, atk=5, def=2, spd=4, luck=10, exp=0, level=1, hpMax=10, mpMax=0 };
-            default:
-                Assert.IsTrue(false);
-                return new CreatureStats();
-        }
-    }
-}
-
-public class Creature
-{
-    public enum Type
-    {
-        DogeKnight,
-        Slime,
-        Turtle,
-        Skeleton,
-    }
-
-    public Creature(Type type, GameObject gameObject)
-    {
-        stats = CreatureStats.Instanciate(type);
-        this.gameObject = gameObject;
-        this.type = type;
-    }
-
-    public CreatureStats stats;
-
-    // Unity game object.
-    public GameObject gameObject;
-
-    public Type type;
-}
-
-public class DogeKnight : Creature
-{
-    public DogeKnight(Type type, GameObject gameObject) : base(type, gameObject)
-    {}
-}
 
 public class Game : MonoBehaviour
 {
@@ -107,13 +49,15 @@ public class Game : MonoBehaviour
         }
     }
 
-    public static void RegisterCreatureProxy(Creature.Type creatureType, GameObject obj)
+    public static void RegisterCreatureProxy(Creature.Type creatureType, bool isNPC, GameObject obj)
     {
         Creature creature;
         if (creatureType == Creature.Type.DogeKnight)
-            creature = new DogeKnight(creatureType, obj);
+            creature = new DogeKnight(creatureType, isNPC, obj);
+        else if (creatureType == Creature.Type.Slime)
+            creature = new Slime(creatureType, isNPC, obj);
         else
-            creature = new Creature(creatureType, obj);
+            creature = new Creature(creatureType, isNPC, obj);
         
         creatures.Add(creature);
     }
@@ -156,7 +100,25 @@ public class Game : MonoBehaviour
     private static void UpdateCreatures()
     {
         foreach (Creature creature in creatures)
+            creature.Update(creatures);
+    }
+
+    private static void UpdateCreature(Creature creature)
+    {
+        Vector3 posWS = creature.gameObject.transform.position;
+
+        // Test again world limits.
+        if (posWS.y < -1f)
         {
+            if (creature.stats.hp > 0)
+            {
+                creature.stats.hp = 0;
+                creature.animator.SetTrigger("TriggerFatalHit");
+            }
+
         }
+        if (creature.isNPC)
+        {}
+
     }
 }
