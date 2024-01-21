@@ -73,7 +73,8 @@ public class Creature
     public Animator animator;
 
     public Type type;
-    public bool isNPC;
+    public bool isPlayer;
+    public bool isNPC { get { return !isPlayer; } set { isPlayer = !value; } }
 
     /// </summary>
     /// List of events that the creature received during the Update phase
@@ -82,14 +83,14 @@ public class Creature
     public List<CreatureEvent> receivedEvents;
     
 
-    public Creature(Type type, bool isNPC, GameObject gameObject)
+    public Creature(Type type, bool isPlayer, GameObject gameObject)
     {
         stats = CreatureStats.Instanciate(type);
         this.gameObject = gameObject;
         // Caching objects for faster access.
         this.animator = gameObject.GetComponent<Animator>();
         this.type = type;
-        this.isNPC = isNPC;
+        this.isPlayer = isPlayer;
 
         receivedEvents = new List<CreatureEvent>();
     }
@@ -135,7 +136,7 @@ public class Creature
 
 public class DogeKnight : Creature
 {
-    public DogeKnight(Type type, bool isNPC, GameObject gameObject) : base(type, isNPC, gameObject)
+    public DogeKnight(Type type, bool isPlayer, GameObject gameObject) : base(type, isPlayer, gameObject)
     {}
 
     public override void Update(List<Creature> creatures)
@@ -174,7 +175,7 @@ public class Slime : Creature
     private float attackTriggerCooldown;
     private int attackConsecutiveCount;
 
-    public Slime(Type type, bool isNPC, GameObject gameObject) : base(type, isNPC, gameObject)
+    public Slime(Type type, bool isPlayer, GameObject gameObject) : base(type, isPlayer, gameObject)
     {}
 
     public override void Update(List<Creature> creatures)

@@ -5,10 +5,10 @@ using UnityEngine;
 public class CreatureProxy : MonoBehaviour
 {
     public Creature.Type creatureType;
-    public bool isNPC = true;
+    public bool isPlayer = false;
 
     void Start()
     {
-        Game.RegisterCreatureProxy(creatureType, isNPC, this.gameObject);
+        Game.RegisterCreatureProxy(creatureType, isPlayer, this.gameObject);
     }
 }

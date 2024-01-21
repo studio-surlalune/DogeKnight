@@ -61,15 +61,15 @@ public class Game : MonoBehaviour
         }
     }
 
-    public static void RegisterCreatureProxy(Creature.Type creatureType, bool isNPC, GameObject obj)
+    public static void RegisterCreatureProxy(Creature.Type creatureType, bool isPlayer, GameObject obj)
     {
         Creature creature;
         if (creatureType == Creature.Type.DogeKnight)
-            creature = new DogeKnight(creatureType, isNPC, obj);
+            creature = new DogeKnight(creatureType, isPlayer, obj);
         else if (creatureType == Creature.Type.Slime)
-            creature = new Slime(creatureType, isNPC, obj);
+            creature = new Slime(creatureType, isPlayer, obj);
         else
-            creature = new Creature(creatureType, isNPC, obj);
+            creature = new Creature(creatureType, isPlayer, obj);
         
         creatures.Add(creature);
     }
