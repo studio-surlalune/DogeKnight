@@ -5,6 +5,8 @@ using UnityEngine;
 using UnityEngine.Assertions;
 
 // This is instantiated once by the UI scene by the GameCallback gameobject in that scene.
+// The Game MonoBahaviour instance is only needed in order for the Game singleton to receive
+// Update() and LateUpdate() callbacks.
 public class Game : MonoBehaviour
 {
     public static List<Creature> creatures;
@@ -13,7 +15,7 @@ public class Game : MonoBehaviour
     private static bool isPaused;
     private static float pauseAnimTime;
 
-    // Start is called before the first frame update
+    // Game script awake must have higher priority than Creature Awake() so we can register creatures.
     void Awake()
     {
         Assert.IsTrue(s_Instance == null);
@@ -61,7 +63,7 @@ public class Game : MonoBehaviour
         }
     }
 
-    public static void RegisterCreatureProxy(Creature.Type creatureType, bool isPlayer, GameObject obj)
+    public static Creature RegisterCreatureProxy(Creature.Type creatureType, bool isPlayer, GameObject obj)
     {
         Creature creature;
         if (creatureType == Creature.Type.DogeKnight)
@@ -72,6 +74,16 @@ public class Game : MonoBehaviour
             creature = new Creature(creatureType, isPlayer, obj);
         
         creatures.Add(creature);
+        return creature;
+    }
+
+    public static Creature FindCreatureByProxy(GameObject gameObject)
+    {
+        foreach (Creature creature in creatures)
+            if (creature.gameObject == gameObject)
+                return creature;
+
+        return null;
     }
 
     public static DogeKnight FindPlayer()
