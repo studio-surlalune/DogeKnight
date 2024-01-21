@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -66,12 +67,12 @@ public class Creature
         Skeleton,
     }
 
-    public CreatureStats stats;
-
     // Unity game object.
     public GameObject gameObject;
     public Animator animator;
+    public Material material;
 
+    public CreatureStats stats;
     public Type type;
     public bool isPlayer;
     public bool isNPC { get { return !isPlayer; } set { isPlayer = !value; } }
@@ -85,10 +86,16 @@ public class Creature
 
     public Creature(Type type, bool isPlayer, GameObject gameObject)
     {
-        stats = CreatureStats.Instanciate(type);
         this.gameObject = gameObject;
         // Caching objects for faster access.
         this.animator = gameObject.GetComponent<Animator>();
+        // Get the Renderer component from this GameObject or one of its children
+        Renderer renderer = gameObject.GetComponentInChildren<Renderer>();
+        // Calling renderer.material create a unique material instance for the gameObject
+        // if it didn'r already exist.
+        material = renderer.material;
+
+        stats = CreatureStats.Instanciate(type);
         this.type = type;
         this.isPlayer = isPlayer;
 
@@ -136,11 +143,25 @@ public class Creature
 
 public class DogeKnight : Creature
 {
+    private static readonly Color kHitColor = new Color(1f, 0.5f, 0.5f, 1f);
+    private static readonly float kHitDuration = 0.25f;
+    private float hitAnimTime;
+
     public DogeKnight(Type type, bool isPlayer, GameObject gameObject) : base(type, isPlayer, gameObject)
-    {}
+    {
+        hitAnimTime = -1f;
+    }
 
     public override void Update(List<Creature> creatures)
-    {}
+    {
+        if (hitAnimTime >= 0f)
+        {
+            hitAnimTime += Time.deltaTime;
+            SetHitColor();
+            if (hitAnimTime >= kHitDuration)
+                hitAnimTime = -1f;
+        }
+    }
 
     public override void LateUpdate(List<Creature> creatures)
     {
@@ -156,15 +177,21 @@ public class DogeKnight : Creature
 
                     MenuSystem.DoMenuTransition(MenuSystem.MenuIndex.GameOver);
                     Game.TransitionPause(true);
-
                 }
                 else
                 {
                     animator.SetTrigger("TriggerHit");
+                    hitAnimTime = 0f;
+                    SetHitColor();
                 }
             }
         }
         receivedEvents.Clear();
+    }
+
+    private void SetHitColor()
+    {
+        material.color = Color.Lerp(kHitColor, Color.white, hitAnimTime / kHitDuration);
     }
 
 }
