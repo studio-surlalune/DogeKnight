@@ -392,8 +392,8 @@ public class MenuSystem : MonoBehaviour
             {
                 hpValue.text = $"{player.stats.hp}";
                 mpValue.text = $"{player.stats.mp}";
-                hpMaxValue.text = $"/ {player.stats.hpMax}";
-                mpMaxValue.text = $"/ {player.stats.mpMax}";
+                hpMaxValue.text = $"{player.stats.hpMax}";
+                mpMaxValue.text = $"{player.stats.mpMax}";
 
                 if (hpStored != player.stats.hp)
                 {
@@ -411,7 +411,7 @@ public class MenuSystem : MonoBehaviour
                 if (hpAnimTime >= 0f)
                 {
                     hpAnimTime += deltaTime;
-                    float s = Mathf.Clamp01(hpAnimTime / kStatAnimTime);
+                    float s = Mathf.Pow(Mathf.Clamp01(hpAnimTime / kStatAnimTime), 0.5f);
                     hpValue.fontSize = Mathf.Lerp(hpFontSize * 2f, hpFontSize, s);
 
                     if (hpAnimTime > kStatAnimTime)
@@ -421,7 +421,7 @@ public class MenuSystem : MonoBehaviour
                 if (mpAnimTime >= 0f)
                 {
                     mpAnimTime += deltaTime;
-                    float s = Mathf.Clamp01(mpAnimTime / kStatAnimTime);
+                    float s = Mathf.Pow(Mathf.Clamp01(mpAnimTime / kStatAnimTime), 0.5f);
                     mpValue.fontSize = Mathf.Lerp(mpFontSize * 2f, mpFontSize, s);
 
                     if (mpAnimTime > kStatAnimTime)
@@ -433,8 +433,8 @@ public class MenuSystem : MonoBehaviour
             {
                 hpValue.text = "0";
                 mpValue.text = "0";
-                hpMaxValue.text = "/ 0";
-                mpMaxValue.text = "/ 0";
+                hpMaxValue.text = "0";
+                mpMaxValue.text = "0";
             }
 
             KeyIndex keyIndex = ProcessInputs();
