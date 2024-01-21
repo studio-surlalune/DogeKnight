@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -7,52 +8,65 @@ using UnityEngine.SceneManagement;
 /// or loading the first game level.
 public class UIStartUp : MonoBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
+    void Awake()
     {
         // Normal game boot up.
-        if (SceneManager.sceneCount == 1 && SceneManager.GetSceneByName("UI").isLoaded)
+        if (SceneManager.sceneCount == 1 && IsUISceneLoaded())
         {
-            MenuSystem.SetScreenFaded(true);
-
-            // Only UI scene was loaded and nothing else, so load start screen too.
-            StartCoroutine(LoadLevelCoroutine("L0-StartScreen", false));
-            MenuSystem.DoMenuTransition(MenuSystem.MenuIndex.Title);
+            StartCoroutine(NormalBootupCoroutine());
         }
-        else if (SceneManager.sceneCount == 1) // level development/debugging
+        // Development/debugging scene boot up.
+        else if (SceneManager.sceneCount == 1)
         {
             // Create a new game instance for debugging.
             Game.NewGame();
 
             // Load UI if not present (when we are launching specific levels for debugging).
-            if (!SceneManager.GetSceneByName("UI").isLoaded)
-                StartCoroutine(LoadLevelCoroutine("UI", true));
+            if (!IsUISceneLoaded())
+                SceneManager.LoadScene("UI", LoadSceneMode.Additive);
+
+            StartCoroutine(TransitionToInGameScreenNextFrame());
         }
     }
 
-    private IEnumerator LoadLevelCoroutine(string sceneName, bool isUI)
+    private static bool IsUISceneLoaded()
     {
-        AsyncOperation asyncOp = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+        // When calling during Awake() on the UI scene, isLoaded may actually be false!
+        return SceneManager.GetSceneByName("UI").isLoaded || SceneManager.GetActiveScene().name == "UI";
+    }
+
+    private IEnumerator NormalBootupCoroutine()
+    {
+        // Must wait a frame to let the MenuSystem initialize.
+        yield return null;
+
+        string startScreenScene = "L0-StartScreen";
+        MenuSystem.SetScreenFaded(true);
+
+        AsyncOperation asyncOp = SceneManager.LoadSceneAsync(startScreenScene, LoadSceneMode.Additive);
 
         // Wait until the asynchronous scene fully loads
         while (!asyncOp.isDone)
             yield return null; // continue execution after Update phase
 
-        Scene loadedScene = SceneManager.GetSceneByName(sceneName);
-        if (loadedScene != null && !isUI)
+        Scene loadedScene = SceneManager.GetSceneByName(startScreenScene);
+        if (loadedScene != null)
         {
             SceneManager.SetActiveScene(loadedScene);
             MenuSystem.BeginScreenFadeIn();
-        }
-        else if (loadedScene != null && isUI)
-        {
-            // Give a chance to the UI to initialize.
-            yield return null; // continue execution after Update phase
-            
-            while (MenuSystem.IsScreenFading())
-                yield return null;
 
-            MenuSystem.DoMenuTransition(MenuSystem.MenuIndex.InGame);
+            while (MenuSystem.IsScreenFading())
+                yield return null; 
+            
+            MenuSystem.DoMenuTransition(MenuSystem.MenuIndex.Title);
         }
+    }
+
+    private IEnumerator TransitionToInGameScreenNextFrame()
+    {
+        // Must wait a frame to let the MenuSystem initialize.
+        yield return null;
+        
+        MenuSystem.DoMenuTransition(MenuSystem.MenuIndex.InGame);
     }
 }

@@ -7,7 +7,7 @@ public class CreatureProxy : MonoBehaviour
     public Creature.Type creatureType;
     public bool isPlayer = false;
 
-    void Start()
+    void Awake()
     {
         Game.RegisterCreatureProxy(creatureType, isPlayer, this.gameObject);
     }
