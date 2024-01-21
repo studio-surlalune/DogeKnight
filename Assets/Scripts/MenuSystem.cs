@@ -905,6 +905,9 @@ public class MenuSystem : MonoBehaviour
             // Fade-out to black screen.
             BeginScreenFadeIn();
 
+            while (IsScreenFading())
+                yield return null;
+
             DoMenuTransition(menuIndex);
         }
     }

@@ -27,8 +27,6 @@ public class UIStartUp : MonoBehaviour
             // Load UI if not present (when we are launching specific levels for debugging).
             if (!SceneManager.GetSceneByName("UI").isLoaded)
                 StartCoroutine(LoadLevelCoroutine("UI", true));
-            
-
         }
     }
 
@@ -48,8 +46,12 @@ public class UIStartUp : MonoBehaviour
         }
         else if (loadedScene != null && isUI)
         {
-            yield return null; // continue execution after Update phase
             // Give a chance to the UI to initialize.
+            yield return null; // continue execution after Update phase
+            
+            while (MenuSystem.IsScreenFading())
+                yield return null;
+
             MenuSystem.DoMenuTransition(MenuSystem.MenuIndex.InGame);
         }
     }
