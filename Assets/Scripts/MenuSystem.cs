@@ -113,7 +113,6 @@ public class MenuSystem : MonoBehaviour
     //_____________________________________________________________________________________________
 
     /// Initial menu state on start-up.
-    /// It automatically transition to TitleMenu.
     class EmptyMenu: IMenu
     {
         Transform transform;
@@ -313,8 +312,8 @@ public class MenuSystem : MonoBehaviour
             if (IsSubmitted(buttons, (int)Buttons.NewGame, selectedIndex))
             {
                 Game.NewGame();
-                DoMenuTransition(MenuIndex.InGame);
-                DoLevelTransition("L1-Field");
+                DoMenuTransition(MenuIndex.Empty);
+                DoLevelTransition("L1-Field", MenuIndex.InGame);
             }
             else if (IsSubmitted(buttons, (int)Buttons.Back, selectedIndex) || IsCancelKey())
                 DoMenuTransition(MenuIndex.Title);
@@ -330,8 +329,19 @@ public class MenuSystem : MonoBehaviour
 
         TMP_Text hpTitle;
         TMP_Text hpValue;
+        TMP_Text hpMaxValue;
         TMP_Text mpTitle;
         TMP_Text mpValue;
+        TMP_Text mpMaxValue;
+
+        // Used for animation HP bar.
+        int hpStored;
+        float hpAnimTime;
+        float hpFontSize;
+        // Used for animation MP bar.
+        int mpStored;
+        float mpAnimTime;
+        float mpFontSize;
 
         Image escapeIcon;
 
@@ -340,9 +350,14 @@ public class MenuSystem : MonoBehaviour
             this.transform = transform;
             hpTitle = transform.Find("HP")?.GetComponent<TMP_Text>();
             hpValue = transform.Find("HP Value")?.GetComponent<TMP_Text>();
+            hpMaxValue = transform.Find("HP Max Value")?.GetComponent<TMP_Text>();
             mpTitle = transform.Find("MP")?.GetComponent<TMP_Text>();
             mpValue = transform.Find("MP Value")?.GetComponent<TMP_Text>();
+            mpMaxValue = transform.Find("MP Max Value")?.GetComponent<TMP_Text>();
             escapeIcon = transform.Find("Escape")?.GetComponent<Image>();
+
+            hpFontSize = hpValue.fontSize;
+            mpFontSize = mpValue.fontSize;
         }
 
         public void SetActive(bool active)
@@ -353,6 +368,16 @@ public class MenuSystem : MonoBehaviour
         public void Enter(MenuIndex previousIndex)
         {
             transform.gameObject.SetActive(true);
+            
+            Creature player = Game.FindPlayer();
+            if (player != null)
+            {
+                // Reset HP and MP animation bars.
+                hpStored = player.stats.hp;
+                hpAnimTime = -1f;
+                mpStored = player.stats.mp;
+                mpAnimTime = -1f;
+            }
         }
 
         public void Exit(MenuIndex nextIndex)
@@ -362,16 +387,54 @@ public class MenuSystem : MonoBehaviour
 
         public void Update(float deltaTime)
         {
-            Creature mainChar = Game.FindDogeKnight();
-            if (mainChar != null)
+            Creature player = Game.FindPlayer();
+            if (player != null)
             {
-                hpValue.text = $"{mainChar.stats.hp} / {mainChar.stats.hpMax}";
-                mpValue.text = $"{mainChar.stats.mp} / {mainChar.stats.mpMax}";
+                hpValue.text = $"{player.stats.hp}";
+                mpValue.text = $"{player.stats.mp}";
+                hpMaxValue.text = $"/ {player.stats.hpMax}";
+                mpMaxValue.text = $"/ {player.stats.mpMax}";
+
+                if (hpStored != player.stats.hp)
+                {
+                    hpStored = player.stats.hp;
+                    hpAnimTime = 0f;
+                }
+
+                if (mpStored != player.stats.mp)
+                {
+                    mpStored = player.stats.mp;
+                    mpAnimTime = 0f;
+                }
+
+                const float kStatAnimTime = 0.5f;
+                if (hpAnimTime >= 0f)
+                {
+                    hpAnimTime += deltaTime;
+                    float s = Mathf.Clamp01(hpAnimTime / kStatAnimTime);
+                    hpValue.fontSize = Mathf.Lerp(hpFontSize * 2f, hpFontSize, s);
+
+                    if (hpAnimTime > kStatAnimTime)
+                        hpAnimTime = -1f;
+                }
+
+                if (mpAnimTime >= 0f)
+                {
+                    mpAnimTime += deltaTime;
+                    float s = Mathf.Clamp01(mpAnimTime / kStatAnimTime);
+                    mpValue.fontSize = Mathf.Lerp(mpFontSize * 2f, mpFontSize, s);
+
+                    if (mpAnimTime > kStatAnimTime)
+                        mpAnimTime = -1f;
+                }
+
             }
             else
             {
-                hpValue.text = "0 / 0";
-                mpValue.text = "0 / 0";
+                hpValue.text = "0";
+                mpValue.text = "0";
+                hpMaxValue.text = "/ 0";
+                mpMaxValue.text = "/ 0";
             }
 
             KeyIndex keyIndex = ProcessInputs();
@@ -453,8 +516,8 @@ public class MenuSystem : MonoBehaviour
             else if (IsSubmitted(buttons, (int)Buttons.Exit, selectedIndex))
             {
                 Game.EndGame();
-                DoMenuTransition(MenuIndex.Title);
-                DoLevelTransition("L0-StartScreen");
+                DoMenuTransition(MenuIndex.Empty);
+                DoLevelTransition("L0-StartScreen", MenuIndex.Title);
                 Game.TransitionPause(false);
             }
         }
@@ -526,15 +589,15 @@ public class MenuSystem : MonoBehaviour
                 Game.TransitionPause(false);
                 Game.EndGame();
                 Game.NewGame();
-                DoMenuTransition(MenuIndex.InGame);
-                DoLevelTransition("L1-Field");
+                DoMenuTransition(MenuIndex.Empty);
+                DoLevelTransition("L1-Field", MenuIndex.InGame);
             }
             else if (IsSubmitted(buttons, (int)Buttons.Exit, selectedIndex))
             {
                 Game.TransitionPause(false);
                 Game.EndGame();
-                DoMenuTransition(MenuIndex.Title);
-                DoLevelTransition("L0-StartScreen");
+                DoMenuTransition(MenuIndex.Empty);
+                DoLevelTransition("L0-StartScreen", MenuIndex.Title);
             }
         }
     }
@@ -586,8 +649,10 @@ public class MenuSystem : MonoBehaviour
             m.SetActive(false);
     }
 
-    // Update is called once per frame
-    void Update()
+    // Late update is called once per frame
+    // Game state will not be known until LateUpdate has finished, so this script
+    // also run at a lower priority to be sure it works with most valid game states.
+    void LateUpdate()
     {
         // Update fade screen (if any).
         UpdateFadeScreen();
@@ -602,9 +667,9 @@ public class MenuSystem : MonoBehaviour
         menuIndex = nextIndex;
     }
 
-    public static void DoLevelTransition(string sceneName)
+    public static void DoLevelTransition(string sceneName, MenuSystem.MenuIndex menuIndex)
     {
-        s_Instance.StartCoroutine(SwitchLevelCoroutine(sceneName));
+        s_Instance.StartCoroutine(SwitchLevelCoroutine(sceneName, menuIndex));
     }
 
     public static void BeginScreenFadeOut()
@@ -810,7 +875,7 @@ public class MenuSystem : MonoBehaviour
     }
 
     /// Unload current active level and load another one.
-    private static IEnumerator SwitchLevelCoroutine(string sceneName)
+    private static IEnumerator SwitchLevelCoroutine(string sceneName, MenuSystem.MenuIndex menuIndex)
     {
         // Fade-in to black screen.
         BeginScreenFadeOut();
@@ -839,6 +904,8 @@ public class MenuSystem : MonoBehaviour
 
             // Fade-out to black screen.
             BeginScreenFadeIn();
+
+            DoMenuTransition(menuIndex);
         }
     }
 }

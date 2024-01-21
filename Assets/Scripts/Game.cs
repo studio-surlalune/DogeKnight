@@ -74,10 +74,10 @@ public class Game : MonoBehaviour
         creatures.Add(creature);
     }
 
-    public static DogeKnight FindDogeKnight()
+    public static DogeKnight FindPlayer()
     {
         foreach (Creature creature in creatures)
-            if (creature.type == Creature.Type.DogeKnight)
+            if (creature.type == Creature.Type.DogeKnight && !creature.isNPC)
                 return creature as DogeKnight;
 
         return null;
