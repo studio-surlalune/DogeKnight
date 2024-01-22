@@ -67,7 +67,13 @@ public class Creature
 
     // Unity game object.
     public GameObject gameObject;
+    // Shortcut for gameObject.transform.
+    public Transform transform;
+    // Shortcut for gameObject.GetComponent<Rigidbody>().
+    public Rigidbody rigidbody;
+    // Shortcut for gameObject.GetComponent<Animator>().
     public Animator animator;
+    // Shortcut for gameObject.GetComponentInChildren<Renderer>().material.
     public Material material;
 
     public CreatureStats stats;
@@ -86,6 +92,8 @@ public class Creature
     {
         this.gameObject = gameObject;
         // Caching objects for faster access.
+        this.transform = gameObject.transform;
+        this.rigidbody = gameObject.GetComponent<Rigidbody>();
         this.animator = gameObject.GetComponent<Animator>();
         // Get the Renderer component from this GameObject or one of its children
         Renderer renderer = gameObject.GetComponentInChildren<Renderer>();
@@ -116,7 +124,6 @@ public class Creature
 
     public static Creature FindClosestCreature(Creature self, List<Creature> creatures, bool isNPC, out float dist)
     {
-        Transform selfTransform = self.gameObject.transform;
         Creature closestCreature = null;
         float closestDistance = float.MaxValue;
 
@@ -125,7 +132,7 @@ public class Creature
             if (creature == self || creature.isNPC != isNPC)
                 continue;
 
-            float distance = Vector3.Distance(selfTransform.position, creature.gameObject.transform.position);
+            float distance = Vector3.Distance(self.transform.position, creature.transform.position);
             if (distance < closestDistance)
             {
                 closestCreature = creature;

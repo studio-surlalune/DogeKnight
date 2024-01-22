@@ -27,18 +27,29 @@ public class DogeKnight : Creature
 
     public override void LateUpdate(List<Creature> creatures)
     {
+        const float kForceFactor = 10f;
+        Vector3 pushBackDirection = Vector3.zero;
+        float pushBackForce = 0f;
+
         foreach (CreatureEvent ev in receivedEvents)
         {
             if (ev.type == CreatureEvent.Type.Attack)
             {
                 stats.hp -= ev.value;
+
+                // If several attacks, just keep the strongest one for push-back animation.
+                if (ev.value * kForceFactor > pushBackForce)
+                {
+                    pushBackForce = ev.value * kForceFactor;
+                    pushBackDirection = Vector3.Normalize(transform.position - ev.source.transform.position);
+                }
+
                 if (stats.hp <= 0)
                 {
                     stats.hp = 0;
                     animator.SetTrigger("TriggerFatalHit");
 
                     MenuSystem.DoMenuTransition(MenuSystem.MenuIndex.GameOver);
-                    Game.TransitionPause(true);
                 }
                 else
                 {
@@ -49,6 +60,12 @@ public class DogeKnight : Creature
             }
         }
         receivedEvents.Clear();
+
+        // Apply push back if any.
+        if (pushBackForce > 0f)
+        {
+            rigidbody.AddForce(pushBackDirection * pushBackForce, ForceMode.Impulse);
+        }
     }
 
     private void SetHitColor()
