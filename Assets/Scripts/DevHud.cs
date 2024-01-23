@@ -121,6 +121,7 @@ public class DevHud : MonoBehaviour
         logText.horizontalOverflow = HorizontalWrapMode.Overflow;
         logText.verticalOverflow = VerticalWrapMode.Truncate;
         logText.alignment = TextAnchor.LowerLeft;
+        logText.lineSpacing = 0.5f;
 
         int lineCapacity = (int)(logText.rectTransform.rect.height / logText.fontSize);
         logLines = new string[lineCapacity];
