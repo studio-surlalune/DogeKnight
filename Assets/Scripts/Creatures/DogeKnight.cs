@@ -27,7 +27,7 @@ public class DogeKnight : Creature
 
     public override void LateUpdate(List<Creature> creatures)
     {
-        const float kForceFactor = 10f;
+        const float kForceFactor = 5f;
         Vector3 pushBackDirection = Vector3.zero;
         float pushBackForce = 0f;
 
@@ -40,8 +40,14 @@ public class DogeKnight : Creature
                 // If several attacks, just keep the strongest one for push-back animation.
                 if (ev.value * kForceFactor > pushBackForce)
                 {
-                    pushBackForce = ev.value * kForceFactor;
+                    pushBackForce = 5f + ev.value * kForceFactor;
                     pushBackDirection = Vector3.Normalize(transform.position - ev.source.transform.position);
+                    // Make it go upward a little bit to prevent friction.
+                    if (pushBackDirection.y < 0.33f)
+                    {
+                        pushBackDirection.y += 0.33f;
+                        pushBackDirection.Normalize();
+                    }
                 }
 
                 if (stats.hp <= 0)
