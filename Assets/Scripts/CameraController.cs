@@ -47,7 +47,7 @@ public class CameraController : MonoBehaviour
         cameraPositionWS = cam.transform.position;
     }
 
-    void Update()
+    void LateUpdate()
     {
         Camera cam = GetComponent<Camera>();
         float deltaTime = Time.deltaTime;
