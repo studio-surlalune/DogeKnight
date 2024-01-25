@@ -22,6 +22,10 @@ public class CharaController : MonoBehaviour
     {
         float deltaTime = Time.deltaTime;
 
+        // Maybe the event should be processed only by the UI system (mouse click).
+        bool isOverUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject() && Input.GetMouseButtonDown(0);
+        bool isDefending = !isOverUI && Input.GetButton("Fire3");
+
         // Get camera translation vectors.
         Vector3 rightDirWS = trackingCam.transform.right;
         Vector3 upDirWS = trackingCam.transform.up;
@@ -33,6 +37,13 @@ public class CharaController : MonoBehaviour
         // Movement relative to the camera
         float moveHorizontal = Input.GetAxis("Horizontal");
         float moveVertical = Input.GetAxis("Vertical");
+
+        // when defending, player cannot move quickly (need to adjust animation between upper and lower body).
+        if (isDefending)
+        {
+            moveHorizontal *= 0.1f;
+            moveVertical *= 0.1f;
+        }
 
         Vector3 characterDirWS = moveVertical * upDirWS + moveHorizontal * rightDirWS;
         Vector3 characterPosWS = transform.position;
@@ -55,12 +66,12 @@ public class CharaController : MonoBehaviour
         animator.SetBool("IsRunning", characterDirWS.sqrMagnitude > 0.3f);
         animator.SetBool("IsOnFloor", isOnFloor);
 
-        // Maybe the event should be processed only by the UI system (mouse click).
-        bool isOverUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject() && Input.GetMouseButtonDown(0);
-
         // Attack
         if (!isOverUI && Input.GetButtonDown("Fire1"))
             animator.SetTrigger("TriggerAttack01");
+
+        // Defense
+        animator.SetBool("IsDefending", isDefending);
 
         // Jumping
         if (Input.GetButtonDown("Jump") && isOnFloor)
