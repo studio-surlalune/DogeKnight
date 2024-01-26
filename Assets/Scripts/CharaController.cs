@@ -38,13 +38,6 @@ public class CharaController : MonoBehaviour
         float moveHorizontal = Input.GetAxis("Horizontal");
         float moveVertical = Input.GetAxis("Vertical");
 
-        // when defending, player cannot move quickly (need to adjust animation between upper and lower body).
-        if (isDefending)
-        {
-            moveHorizontal *= 0.1f;
-            moveVertical *= 0.1f;
-        }
-
         Vector3 characterDirWS = moveVertical * upDirWS + moveHorizontal * rightDirWS;
         Vector3 characterPosWS = transform.position;
 
