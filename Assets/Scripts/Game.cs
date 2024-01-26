@@ -63,7 +63,7 @@ public class Game : MonoBehaviour
         }
     }
 
-    public static Creature RegisterCreatureProxy(Creature.Type creatureType, bool isPlayer, GameObject obj)
+    public static Creature RegisterGameObject(Creature.Type creatureType, bool isPlayer, GameObject obj)
     {
         Creature creature;
         if (creatureType == Creature.Type.DogeKnight)
