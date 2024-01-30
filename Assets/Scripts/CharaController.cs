@@ -38,6 +38,7 @@ public class CharaController : MonoBehaviour
         float moveHorizontal = Input.GetAxis("Horizontal");
         float moveVertical = Input.GetAxis("Vertical");
 
+        // Move slower if defending (raising shield).
         if (isDefending)
         {
             moveHorizontal *= 0.75f;
