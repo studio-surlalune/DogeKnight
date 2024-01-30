@@ -19,7 +19,7 @@ public class DogeKnight : Creature
         if (hitAnimTime >= 0f)
         {
             hitAnimTime += Time.deltaTime;
-            SetHitColor();
+            ApplyHitColor();
             if (hitAnimTime >= kHitDuration)
                 hitAnimTime = -1f;
         }
@@ -27,7 +27,7 @@ public class DogeKnight : Creature
 
     public override void LateUpdate(List<Creature> creatures)
     {
-        const float kForceFactor = 5f;
+        const float kForceFactor = 2f;
         Vector3 pushBackDirection = Vector3.zero;
         float pushBackForce = 0f;
 
@@ -40,7 +40,7 @@ public class DogeKnight : Creature
                 // If several attacks, just keep the strongest one for push-back animation.
                 if (ev.value * kForceFactor > pushBackForce)
                 {
-                    pushBackForce = 5f + ev.value * kForceFactor;
+                    pushBackForce = 2f + ev.value * kForceFactor;
                     pushBackDirection = Vector3.Normalize(transform.position - ev.source.transform.position);
                     // Make it go upward a little bit to prevent friction.
                     if (pushBackDirection.y < 0.33f)
@@ -61,7 +61,7 @@ public class DogeKnight : Creature
                 {
                     animator.SetTrigger("TriggerHit");
                     hitAnimTime = 0f;
-                    SetHitColor();
+                    ApplyHitColor();
                 }
             }
         }
@@ -74,7 +74,7 @@ public class DogeKnight : Creature
         }
     }
 
-    private void SetHitColor()
+    private void ApplyHitColor()
     {
         material.color = Color.Lerp(kHitColor, Color.white, hitAnimTime / kHitDuration);
     }

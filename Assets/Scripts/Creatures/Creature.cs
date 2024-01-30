@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -22,6 +23,20 @@ public struct CreatureEvent
         this.type = type;
         this.value = value;
     }
+}
+
+public struct CreatureAction
+{
+    public enum Type
+    {
+        Attack,
+    }
+
+    public Creature source;
+    public float startTime;
+    public float endTime;
+    public Type type;
+    public int value;
 }
 
 public struct CreatureStats
@@ -81,12 +96,16 @@ public class Creature
     public bool isPlayer;
     public bool isNPC { get { return !isPlayer; } set { isPlayer = !value; } }
 
+    /// <summary>
+    /// List of actions in progress.
+    /// They are usually physics-related.
+    /// </summary>
+    public List<CreatureAction> actions;
     /// </summary>
     /// List of events that the creature received during the Update phase
     /// and must deal with during the LateUpdate phase.
     /// </summary>
     public List<CreatureEvent> receivedEvents;
-    
 
     public Creature(Type type, bool isPlayer, GameObject gameObject)
     {
@@ -105,6 +124,7 @@ public class Creature
         this.type = type;
         this.isPlayer = isPlayer;
 
+        actions = new List<CreatureAction>();
         receivedEvents = new List<CreatureEvent>();
     }
 
@@ -122,14 +142,21 @@ public class Creature
     public virtual void LateUpdate(List<Creature> creatures)
     {}
 
-    public static Creature FindClosestCreature(Creature self, List<Creature> creatures, bool isNPC, out float dist)
+    /// <summary>
+    /// Called by physics callback event when we detect a creature collide with another creature.
+    /// </summary>
+    /// <param name="other"></param>
+    public virtual void RegisterCollision(Creature other)
+    {}
+
+    public static Creature FindClosestCreature(Creature self, List<Creature> creatures, bool isPlayer, out float dist)
     {
         Creature closestCreature = null;
         float closestDistance = float.MaxValue;
 
         foreach (Creature creature in creatures)
         {
-            if (creature == self || creature.isNPC != isNPC)
+            if (creature == self || creature.isPlayer != isPlayer)
                 continue;
 
             float distance = Vector3.Distance(self.transform.position, creature.transform.position);

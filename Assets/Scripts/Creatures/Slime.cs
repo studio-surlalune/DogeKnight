@@ -13,22 +13,67 @@ public class Slime : Creature
 
     public override void Update(List<Creature> creatures)
     {
+        // Process pending actions.
+        UpdateActions();
+
+        UpdateMotion(creatures);
+    }
+
+    public override void LateUpdate(List<Creature> creatures)
+    {
+        receivedEvents.Clear();
+    }
+
+    public override void RegisterCollision(Creature otherCreature)
+    {
+        // Find if an attack action is in progress, and generate a hit event on the creature if that's the case.
+        for (int i = 0; i < actions.Count; ++i)
+        {
+            CreatureAction action = actions[i];
+            if (action.type == CreatureAction.Type.Attack)
+            {
+                otherCreature.receivedEvents.Add(
+                    new CreatureEvent(this, otherCreature, CreatureEvent.Type.Attack, action.value)
+                );
+                break;
+            }
+        }
+    }
+
+    private void UpdateActions()
+    {
+        float time = Time.time;
+
+        for (int i = 0; i < actions.Count; ++i)
+        {
+            CreatureAction action = actions[i];
+            if (time >= action.endTime)
+            {
+                actions.RemoveAt(i);
+                --i;
+            }
+        }
+    }
+
+    private void UpdateMotion(List<Creature> creatures)
+    {
         const float kAwarenessDistance = 8f;
         const float kChargeDistance = 5f;
         const float kAttackDistance = 1.9f;
 
-        // Find thssaaae closest creature.
+        // Find thssaaae closest player.
         float closestDistance;
-        Creature closestCreature = Creature.FindClosestCreature(this, creatures, false, out closestDistance);
+        Creature closestCreature = Creature.FindClosestCreature(this, creatures, true, out closestDistance);
 
         // Do nothing if there is no playable character nearby.
         if (closestDistance > kAwarenessDistance)
             return;
 
-        // Abnormal condition: do nothing to avoid incorrect maths?        
+        // Abnormal condition: do nothing to avoid NaN maths?        
         if (closestDistance < 0.01f)
             return;
 
+        float time = Time.time;
         float deltaTime = Time.deltaTime;
         float motionSpeed = 1f + stats.spd * kSpeedFactorInv;
         float rotationSpeed = 10.0f;
@@ -72,9 +117,13 @@ public class Slime : Creature
                 attackConsecutiveCount %= 3;
 
                 int attackDamage = doAttack == 1 ? stats.atk : stats.atk*2;
-                closestCreature.receivedEvents.Add(
-                    new CreatureEvent(this, closestCreature, CreatureEvent.Type.Attack, attackDamage)
-                );
+                actions.Add(new CreatureAction {
+                    source = this,
+                    startTime = time,
+                    endTime = time + 0.3f,
+                    type = CreatureAction.Type.Attack,
+                    value = attackDamage
+                });
             }
         }
         else
@@ -87,18 +136,12 @@ public class Slime : Creature
         transform.Translate(translationWS, Space.World);
         transform.rotation = rotation;
 
+        // Apply animations.
         if (doAttack == 1)
             animator.SetTrigger("Attack0");
         else if (doAttack == 2)
             animator.SetTrigger("Attack1");
-        
-        // Apply animations.
         animator.SetBool("EnemyNearby", closestDistance <= kAwarenessDistance);
         animator.SetBool("IsWalking", closestDistance > kAttackDistance && closestDistance <= kChargeDistance);
-    }
-
-    public override void LateUpdate(List<Creature> creatures)
-    {
-        receivedEvents.Clear();
     }
 }

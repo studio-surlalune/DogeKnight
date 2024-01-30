@@ -6,9 +6,10 @@ public class CreatureRegistry : MonoBehaviour
 {
     public Creature.Type creatureType;
     public bool isPlayer = false;
+    internal Creature creature;
 
     void Awake()
     {
-        Game.RegisterGameObject(creatureType, isPlayer, this.gameObject);
+        creature = Game.RegisterGameObject(creatureType, isPlayer, this.gameObject);
     }
 }
