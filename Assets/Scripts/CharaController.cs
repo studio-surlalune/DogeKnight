@@ -38,6 +38,13 @@ public class CharaController : MonoBehaviour
         float moveHorizontal = Input.GetAxis("Horizontal");
         float moveVertical = Input.GetAxis("Vertical");
 
+        if (isDefending)
+        {
+            moveHorizontal *= 0.75f;
+            moveVertical *= 0.75f;
+        }
+
+
         Vector3 characterDirWS = moveVertical * upDirWS + moveHorizontal * rightDirWS;
         Vector3 characterPosWS = transform.position;
 
