@@ -425,6 +425,7 @@ public class SnowSystem : MonoBehaviour
     {
         int raycastCount = 0;
         int instanceCount = (int)instanceCountf;
+        int layerMask = LayerMask.GetMask("Environment");
 
         // Because RaycastCommand.ScheduleBatch() does not accept NativeSlice or NativeArray range,
         // we must temporarily accumulate the raycast commands in a temporary array.
@@ -447,7 +448,7 @@ public class SnowSystem : MonoBehaviour
                     float raycastLengthFactor = 1.0f * flake.raycastFrequency;
 
                     #pragma warning disable 0618
-                    queries[raycastCount] = new RaycastCommand(flake.posWS, n, velLength * raycastLengthFactor * deltaTime);
+                    queries[raycastCount] = new RaycastCommand(flake.posWS, n, velLength * raycastLengthFactor * deltaTime, layerMask);
                     #pragma warning restore 0618
                     flake.raycastResultIndex = raycastCount++;
                     flake.raycastFrameCounter = 0;
