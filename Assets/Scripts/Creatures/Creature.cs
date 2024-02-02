@@ -8,7 +8,7 @@ public struct CreatureEvent
 {
     public enum Type
     {
-        Attack,
+        Hit,
     }
 
     public Creature source;
@@ -117,7 +117,7 @@ public class Creature
         // Get the Renderer component from this GameObject or one of its children
         Renderer renderer = gameObject.GetComponentInChildren<Renderer>();
         // Calling renderer.material create a unique material instance for the gameObject
-        // if it didn'r already exist.
+        // if it didn't already exist.
         material = renderer.material;
 
         stats = CreatureStats.Instanciate(type);
@@ -149,7 +149,7 @@ public class Creature
     public virtual void RegisterCollision(Creature other)
     {}
 
-    public static Creature FindClosestCreature(Creature self, List<Creature> creatures, bool isPlayer, out float dist)
+    internal static Creature FindClosestCreature(Creature self, List<Creature> creatures, bool isPlayer, out float dist)
     {
         Creature closestCreature = null;
         float closestDistance = float.MaxValue;
@@ -169,6 +169,31 @@ public class Creature
 
         dist = closestDistance;
         return closestCreature;
+    }
 
+    internal static void TrimActions(List<CreatureAction> actions, float time)
+    {
+        for (int i = 0; i < actions.Count; ++i)
+        {
+            CreatureAction action = actions[i];
+            if (time >= action.endTime)
+            {
+                actions.RemoveAt(i);
+                --i;
+            }
+        }
+    }
+
+    internal static Transform FindRecursive(Transform parent, string name)
+    {
+        foreach (Transform child in parent)
+        {
+            if (child.name == name)
+                return child;
+            Transform result = FindRecursive(child, name);
+            if (result != null)
+                return result;
+        }
+        return null;
     }
 }

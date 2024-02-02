@@ -9,6 +9,7 @@ public class CharaController : MonoBehaviour
     private float speed = 4.0f;
     private float rotationSpeed = 50.0f;
     private float jumpForce = 20.0f;
+    private Creature creature;
     private Animator animator;
     private Rigidbody rb;
 
@@ -16,6 +17,7 @@ public class CharaController : MonoBehaviour
     {
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody>();
+        creature = GetComponent<CreatureRegistry>().creature;
     }
 
     void Update()
@@ -25,6 +27,9 @@ public class CharaController : MonoBehaviour
         // Maybe the event should be processed only by the UI system (mouse click).
         bool isOverUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject() && Input.GetMouseButtonDown(0);
         bool isDefending = !isOverUI && Input.GetButton("Fire3");
+
+        if (creature is DogeKnight)
+           ((DogeKnight)creature).isDefending = isDefending;
 
         // Get camera translation vectors.
         Vector3 rightDirWS = trackingCam.transform.right;

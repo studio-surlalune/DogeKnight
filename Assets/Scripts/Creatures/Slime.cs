@@ -14,7 +14,7 @@ public class Slime : Creature
     public override void Update(List<Creature> creatures)
     {
         // Process pending actions.
-        UpdateActions();
+        TrimActions(actions, Time.time);
 
         UpdateMotion(creatures);
     }
@@ -33,24 +33,9 @@ public class Slime : Creature
             if (action.type == CreatureAction.Type.Attack)
             {
                 otherCreature.receivedEvents.Add(
-                    new CreatureEvent(this, otherCreature, CreatureEvent.Type.Attack, action.value)
+                    new CreatureEvent(this, otherCreature, CreatureEvent.Type.Hit, action.value)
                 );
                 break;
-            }
-        }
-    }
-
-    private void UpdateActions()
-    {
-        float time = Time.time;
-
-        for (int i = 0; i < actions.Count; ++i)
-        {
-            CreatureAction action = actions[i];
-            if (time >= action.endTime)
-            {
-                actions.RemoveAt(i);
-                --i;
             }
         }
     }
