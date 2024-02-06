@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using System;
 
-public class CharaController : MonoBehaviour
+public class PlayerController : MonoBehaviour
 {
     public Camera trackingCam;
 
