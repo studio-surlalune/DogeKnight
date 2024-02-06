@@ -10,6 +10,6 @@ public class CreatureRegistry : MonoBehaviour
 
     void Awake()
     {
-        creature = Game.RegisterGameObject(creatureType, isPlayer, this.gameObject);
+        creature = Game.RegisterCreature(creatureType, isPlayer, this.gameObject);
     }
 }

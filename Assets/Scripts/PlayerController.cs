@@ -1,26 +1,34 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using System;
+using System.Collections.Generic;
 
 public class PlayerController : MonoBehaviour
 {
     public Camera trackingCam;
 
     private float speed = 4.0f;
-    private float rotationSpeed = 50.0f;
+    private float rotationSpeed = 16.0f;
+    private float defensiveRotationSpeed = 7.0f;
     private float jumpForce = 20.0f;
     private Creature creature;
     private Animator animator;
     private Rigidbody rb;
 
+    void Awake()
+    {
+        Game.RegisterPlayerController(this);
+    }
+
     void Start()
     {
         animator = GetComponent<Animator>();
         rb = GetComponent<Rigidbody>();
+        // Cannot be done in Awake() due to script ordering issue.
         creature = GetComponent<CreatureRegistry>().creature;
     }
 
-    void Update()
+    public void UpdateGame(List<Creature> creatures)
     {
         float deltaTime = Time.deltaTime;
 
@@ -36,40 +44,54 @@ public class PlayerController : MonoBehaviour
         Vector3 upDirWS = trackingCam.transform.up;
         rightDirWS.y = 0.0f;
         upDirWS.y = 0.0f;
-        rightDirWS.Normalize();
-        upDirWS.Normalize();
+        rightDirWS = Vector3.Normalize(rightDirWS);
+        upDirWS = Vector3.Normalize(upDirWS);
 
         // Movement relative to the camera
         float moveHorizontal = Input.GetAxis("Horizontal");
         float moveVertical = Input.GetAxis("Vertical");
 
-        // Move slower if defending (raising shield).
         if (isDefending)
         {
+            // Move slower if defending (raising shield).
             moveHorizontal *= 0.75f;
             moveVertical *= 0.75f;
         }
 
+        Vector3 characterVelWS = moveVertical * upDirWS + moveHorizontal * rightDirWS;
+        Vector3 characterDirWS = characterVelWS;
+        float actualRotationSpeed = rotationSpeed;
 
-        Vector3 characterDirWS = moveVertical * upDirWS + moveHorizontal * rightDirWS;
-        Vector3 characterPosWS = transform.position;
+        if (isDefending)
+        {
+            // Find nearest enemy.
+            float closestDistance;
+            Creature closestCreature = Creature.FindClosestCreature(creature, creatures, false, out closestDistance);
+            if (closestDistance < 5f)
+            {
+                Vector3 directionWS = closestCreature.gameObject.transform.position - transform.position;
+                directionWS.y = 0;
+                characterDirWS = Vector3.Normalize(directionWS);
+                actualRotationSpeed = defensiveRotationSpeed;
+            }
+        }
 
         bool isOnFloor = TestFloorContact();
 
         Quaternion prevRotation = transform.rotation;
 
         transform.rotation = Quaternion.identity;
-        transform.Translate(characterDirWS * speed * deltaTime);
+        transform.Translate(characterVelWS * speed * deltaTime);
 
         if (characterDirWS.sqrMagnitude > 0.01f)
         {
             Quaternion newRotation = Quaternion.LookRotation(characterDirWS, Vector3.up);
-            transform.rotation = Quaternion.Lerp(prevRotation, newRotation, rotationSpeed * deltaTime);
+            transform.rotation = Quaternion.Lerp(prevRotation, newRotation, actualRotationSpeed * deltaTime);
         }
         else
             transform.rotation = prevRotation;
 
-        animator.SetBool("IsRunning", characterDirWS.sqrMagnitude > 0.3f);
+        animator.SetBool("IsRunning", characterVelWS.sqrMagnitude > 0.3f);
         animator.SetBool("IsOnFloor", isOnFloor);
 
         // Attack
@@ -116,6 +138,5 @@ public class PlayerController : MonoBehaviour
         }
 
         return minDistSq <= (0.15f * 0.15f);
-
     }
 }

@@ -1,5 +1,3 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Assertions;
@@ -10,7 +8,7 @@ using UnityEngine.Assertions;
 public class Game : MonoBehaviour
 {
     public static List<Creature> creatures;
-
+    public static PlayerController playerController;
     private static Game s_Instance;
     private static bool isPaused;
     private static float pauseAnimTime;
@@ -63,7 +61,12 @@ public class Game : MonoBehaviour
         }
     }
 
-    public static Creature RegisterGameObject(Creature.Type creatureType, bool isPlayer, GameObject obj)
+    public static void RegisterPlayerController(PlayerController controller)
+    {
+        playerController = controller;
+    }
+
+    public static Creature RegisterCreature(Creature.Type creatureType, bool isPlayer, GameObject obj)
     {
         Creature creature;
         if (creatureType == Creature.Type.DogeKnight)
@@ -109,6 +112,9 @@ public class Game : MonoBehaviour
         
         foreach (Creature creature in creatures)
             creature.Update(creatures);
+
+        if (playerController)
+            playerController.UpdateGame(creatures);
     }
 
     private static void LateUpdateGame()
