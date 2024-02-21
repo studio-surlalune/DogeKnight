@@ -12,16 +12,13 @@ public class DogeKnight : Creature
 
     internal bool isDefending;
     // Hit animation for the character.
-    private float charHitAnimTime;
+    private float charHitAnimTime = -1f;
     // Hit animation on the character shield.
-    private float shieldHitAnimTime;
+    private float shieldHitAnimTime = -1f;
     private Material shieldMaterial;
 
     public DogeKnight(Type type, bool isPlayer, GameObject gameObject) : base(type, isPlayer, gameObject)
     {
-        charHitAnimTime = -1f;
-        shieldHitAnimTime = -1f;
-
         Transform shieldTransform = Creature.FindRecursive(gameObject.transform, "Shield");
         GameObject shield = shieldTransform.gameObject;
         Renderer shieldRenderer = shield.GetComponentInChildren<Renderer>();
@@ -69,12 +66,6 @@ public class DogeKnight : Creature
                 {
                     pushBackForce = 3f + ev.value * kForceFactor;
                     pushBackDirection = Vector3.Normalize(transform.position - ev.source.transform.position);
-                    // Make it go upward a little bit to prevent friction.
-                    if (pushBackDirection.y < 0.33f)
-                    {
-                        pushBackDirection.y += 0.33f;
-                        pushBackDirection = Vector3.Normalize(pushBackDirection);
-                    }
                 }
 
                 if (isDeflecting)
@@ -104,7 +95,33 @@ public class DogeKnight : Creature
         // Apply push back if any.
         if (pushBackForce > 0f)
         {
-            rigidbody.AddForce(pushBackDirection * pushBackForce, ForceMode.Impulse);
+            rigidbody.AddForce(pushBackDirection * pushBackForce, ForceMode.VelocityChange);
+
+            // Attempt to avoid bouncing artifacts.
+            float maxVelocity = 0.5f;
+            if (rigidbody.velocity.magnitude > maxVelocity)
+                rigidbody.velocity = rigidbody.velocity.normalized * maxVelocity;
+        }
+    }
+
+    public override void RegisterCollision(GameObject otherObject, Creature otherCreature)
+    {
+        // Find if an attack action is in progress, and generate a hit event on the creature if that's the case.
+        for (int i = 0; i < actions.Count; ++i)
+        {
+            CreatureAction action = actions[i];
+            if (action.type != CreatureAction.Type.Attack)
+                continue;
+
+            // Prevent the sword from hitting the same creature multiple frames.
+            if (action.records.Contains(otherCreature))
+                continue;
+
+            action.records.Add(otherCreature);
+            otherCreature.receivedEvents.Add(
+                new CreatureEvent(this, otherCreature, CreatureEvent.Type.Hit, action.value)
+            );
+            break;
         }
     }
 

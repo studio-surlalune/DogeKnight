@@ -15,6 +15,7 @@ public class PlayerController : MonoBehaviour
     private Animator animator;
     private Rigidbody rb;
 
+
     void Awake()
     {
         Game.RegisterPlayerController(this);
@@ -30,10 +31,12 @@ public class PlayerController : MonoBehaviour
 
     public void UpdateGame(List<Creature> creatures)
     {
+        float time = Time.time;
         float deltaTime = Time.deltaTime;
 
         // Maybe the event should be processed only by the UI system (mouse click).
         bool isOverUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject() && Input.GetMouseButtonDown(0);
+        bool isAttacking = !isOverUI && Input.GetButtonDown("Fire1");
         bool isDefending = !isOverUI && Input.GetButton("Fire3");
 
         if (creature is DogeKnight)
@@ -66,9 +69,10 @@ public class PlayerController : MonoBehaviour
         {
             // Find nearest enemy.
             float closestDistance;
-            Creature closestCreature = Creature.FindClosestCreature(creature, creatures, false, out closestDistance);
+            Creature closestCreature = Creature.FindClosestCreature(creature, creatures, false, true, out closestDistance);
             if (closestDistance < 5f)
             {
+                // Adjust player orientation to face nearest enemy.
                 Vector3 directionWS = closestCreature.gameObject.transform.position - transform.position;
                 directionWS.y = 0;
                 characterDirWS = Vector3.Normalize(directionWS);
@@ -76,6 +80,27 @@ public class PlayerController : MonoBehaviour
             }
         }
 
+        // Update trigger status.
+        int actionLayer = animator.GetLayerIndex("Action Layer");
+        AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(actionLayer);
+        // 0.6f is an approximation where we consider the attack has been completed and we can trigger a new one.
+        const float kAttackTriggerCooldown = 0.6f;
+        bool attackInProgress = (stateInfo.IsName("Attack01") && stateInfo.normalizedTime < kAttackTriggerCooldown)
+            || (stateInfo.IsName("Attack02") && stateInfo.normalizedTime < kAttackTriggerCooldown);
+
+        if (isAttacking && !attackInProgress)
+        {
+                creature.actions.Add(new CreatureAction {
+                source = this.creature,
+                startTime = time,
+                endTime = time + stateInfo.length *  kAttackTriggerCooldown,
+                type = CreatureAction.Type.Attack,
+                value = creature.stats.atk,
+                records = new List<Creature>(),
+            });
+        }
+
+        // We can only initiate a jump if we are on the floor.
         bool isOnFloor = TestFloorContact();
 
         Quaternion prevRotation = transform.rotation;
@@ -95,7 +120,7 @@ public class PlayerController : MonoBehaviour
         animator.SetBool("IsOnFloor", isOnFloor);
 
         // Attack
-        if (!isOverUI && Input.GetButtonDown("Fire1"))
+        if (isAttacking && !attackInProgress)
             animator.SetTrigger("TriggerAttack01");
 
         // Defense

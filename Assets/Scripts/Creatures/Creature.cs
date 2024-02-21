@@ -37,6 +37,7 @@ public struct CreatureAction
     public float endTime;
     public Type type;
     public int value;
+    public List<Creature> records;
 }
 
 public struct CreatureStats
@@ -57,9 +58,9 @@ public struct CreatureStats
         switch(type)
         {
             case Creature.Type.DogeKnight:  return new CreatureStats { hp=100, mp=10, atk=10, def=10, spd=20, luck=10, exp=0, level=1, hpMax=100, mpMax=10 };
-            case Creature.Type.Slime:       return new CreatureStats { hp= 10, mp= 0, atk= 2, def= 2, spd= 8, luck=10, exp=0, level=1, hpMax= 10, mpMax= 0 };
-            case Creature.Type.Turtle:      return new CreatureStats { hp= 15, mp= 0, atk= 2, def= 4, spd= 4, luck=10, exp=0, level=1, hpMax= 15, mpMax= 0 };
-            case Creature.Type.Skeleton:    return new CreatureStats { hp= 15, mp= 0, atk= 5, def= 2, spd=12, luck=10, exp=0, level=1, hpMax= 10, mpMax= 0 };
+            case Creature.Type.Slime:       return new CreatureStats { hp= 30, mp= 0, atk= 2, def= 2, spd= 8, luck=10, exp=0, level=1, hpMax= 10, mpMax= 0 };
+            case Creature.Type.Turtle:      return new CreatureStats { hp= 60, mp= 0, atk= 2, def= 4, spd= 4, luck=10, exp=0, level=1, hpMax= 15, mpMax= 0 };
+            case Creature.Type.Skeleton:    return new CreatureStats { hp= 50, mp= 0, atk= 5, def= 2, spd=12, luck=10, exp=0, level=1, hpMax= 10, mpMax= 0 };
             default:
                 Assert.IsTrue(false);
                 return new CreatureStats();
@@ -145,11 +146,14 @@ public class Creature
     /// <summary>
     /// Called by physics callback event when we detect a creature collide with another creature.
     /// </summary>
-    /// <param name="other"></param>
-    public virtual void RegisterCollision(Creature other)
+    /// <param name="gameObject">the object which received the collision event.
+    /// It may be the gameObject linked to the creature or a child object from the creature.
+    /// For instance, the sword attached to the DogeKnight creature.</param>
+    /// <param name="other">the creature that was hit.</param>
+    public virtual void RegisterCollision(GameObject otherObject, Creature other)
     {}
 
-    internal static Creature FindClosestCreature(Creature self, List<Creature> creatures, bool isPlayer, out float dist)
+    internal static Creature FindClosestCreature(Creature self, List<Creature> creatures, bool isPlayer, bool isAlive, out float dist)
     {
         Creature closestCreature = null;
         float closestDistance = float.MaxValue;
@@ -157,6 +161,9 @@ public class Creature
         foreach (Creature creature in creatures)
         {
             if (creature == self || creature.isPlayer != isPlayer)
+                continue;
+            
+            if (isAlive != (creature.stats.hp > 0))
                 continue;
 
             float distance = Vector3.Distance(self.transform.position, creature.transform.position);

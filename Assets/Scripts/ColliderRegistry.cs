@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 public class ColliderRegistry : MonoBehaviour
 {
@@ -11,6 +12,15 @@ public class ColliderRegistry : MonoBehaviour
     {
         if (creatureLayer == -1)
             creatureLayer = LayerMask.NameToLayer("Creature");
+
+        if (Debug.isDebugBuild)
+        {
+            Collider[] colliders = this.GetComponents<Collider>();
+            bool aColliderHasTrigger = false;
+            foreach (Collider collider in colliders)
+                aColliderHasTrigger |= collider.isTrigger;
+            Assert.IsTrue(aColliderHasTrigger, "ColliderRegistry requires at least one trigger collider");
+        }
     }
 
     void Start()
@@ -24,6 +34,7 @@ public class ColliderRegistry : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
+        // Only process collisions with creatures layer.
         if (other.gameObject.layer != creatureLayer)
             return;
         
@@ -34,6 +45,6 @@ public class ColliderRegistry : MonoBehaviour
         if (otherRegistry == null)
             return;
         
-        creature.RegisterCollision(otherRegistry.creature);
+        creature.RegisterCollision(other.gameObject, otherRegistry.creature);
     }
 }
